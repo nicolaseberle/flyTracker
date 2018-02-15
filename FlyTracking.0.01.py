@@ -21,22 +21,37 @@ def main():
     
     # Select one video and data in this list ()
     ##############################################################################
-    cap = cv2.VideoCapture('./dataset/test.avi')
-    marge_x = 1
-    marge_y = 1
+    #cap = cv2.VideoCapture('./dataset/test.avi')
+    #marge_x = 1
+    #marge_y = 1
+    #seuil_bas=45
     ##############################################################################
     #cap = cv2.VideoCapture('./dataset/VID_20171222_162237.mp4')
     #marge_x = 200
     #marge_y = 1
+    #seuil_bas=45
     ##############################################################################
     #cap = cv2.VideoCapture('./dataset/VID_20171222_153941.mp4')
     #marge_x = 200
     #marge_y = 1
+    #seuil_bas=45
     ##############################################################################
     #cap = cv2.VideoCapture('./dataset/test.avi')
     #marge_x = 1
     #marge_y = 1
+    #seuil_bas=45
     ##############################################################################
+    #cap = cv2.VideoCapture('./dataset/Arena_repoGS_Atxn3.avi')
+    #marge_x = 1
+    #marge_y = 1
+    #seuil_bas=45
+    ##############################################################################
+    cap = cv2.VideoCapture('./dataset/arene11.avi')
+    marge_x = 1
+    marge_y = 1
+    seuil_bas = 60
+    
+    
     
     # Check if camera opened successfully
     if (cap.isOpened()== False): 
@@ -69,7 +84,7 @@ def main():
             num_plot = 0
             init_once = True
         
-        ret,thresh2 = cv2.threshold(gray,45,255,cv2.THRESH_BINARY_INV)
+        ret,thresh2 = cv2.threshold(gray,seuil_bas,255,cv2.THRESH_BINARY_INV)
         thresh2_dilate = cv2.dilate(thresh2,kernel,iterations = 1)
         thresh2_median  = cv2.medianBlur(thresh2_dilate,5)
         
