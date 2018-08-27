@@ -2,11 +2,12 @@
 
 ### Prerequisites
 
-- Python2.7
+- Python 3.5
 - [OpenCv](https://opencv.org/) (version 2.4.9.1)
-- [Spyder3](https://pythonhosted.org/spyder/installation.html)
+
 ### Run
 
+python3 FlyTracking.0.03.py
 
 
 
