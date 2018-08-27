@@ -20,4 +20,4 @@ CONV_PX2CM = DIAMETER_ROUND_BOX_CM/DIAMETER_ROUND_BOX_PIXEL
 VERBOSE_LIGHT = True
 VERBOSE_FULL = False
 NBFRAME_BEFORE_RECORDING = 30
-DIR_WORKSPACE = '/home/neberle/tmp/'#A mettre en absolu
+DIR_WORKSPACE = '/home/pi/workspace/flyTracker/output'#A mettre en absolu

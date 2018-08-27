@@ -21,7 +21,7 @@ def main():
     
     # Select one video and data in this list ()
     ##############################################################################
-    cap = cv2.VideoCapture('./dataset/out.mp4')
+    cap = cv2.VideoCapture('./dataset/fly_tracker_05.avi')
     marge_x = 1
     marge_y = 1
     seuil_bas=45
@@ -36,10 +36,10 @@ def main():
     #marge_y = 1
     #seuil_bas=45
     ##############################################################################
-    cap = cv2.VideoCapture('./dataset/test.avi')
-    marge_x = 1
-    marge_y = 1
-    seuil_bas=45
+    #cap = cv2.VideoCapture('./dataset/test.avi')
+    #marge_x = 1
+    #marge_y = 1
+    #seuil_bas=45
     ##############################################################################
     #cap = cv2.VideoCapture('./dataset/Arena_repoGS_Atxn3.avi')
     #marge_x = 1

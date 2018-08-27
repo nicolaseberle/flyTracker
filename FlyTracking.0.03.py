@@ -1,9 +1,21 @@
+from imutils.video.pivideostream import PiVideoStream
+from imutils.video import FPS
+from picamera.array import PiRGBArray
+from picamera import PiCamera
+import argparse
+import imutils
+import time
 
 
 import cv2
 import numpy as np
 from multipleObjectTracker_3 import MultipleObjectTracker
 import tracker_constant as const
+
+
+def nothing(x):
+    pass
+
 
 def main():
     #X vers le bas, Y vers la droite
@@ -21,10 +33,10 @@ def main():
     
     # Select one video and data in this list ()
     ##############################################################################
-    cap = cv2.VideoCapture('./dataset/out.mp4')
-    marge_x = 1
-    marge_y = 1
-    seuil_bas=45
+    #cap = cv2.VideoCapture('./dataset/fly_tracker_05.avi')
+    #marge_x = 1
+    #marge_y = 1
+    #seuil_bas=45
     ##############################################################################
     #cap = cv2.VideoCapture('./dataset/VID_20171222_162237.mp4')
     #marge_x = 200
@@ -36,10 +48,10 @@ def main():
     #marge_y = 1
     #seuil_bas=45
     ##############################################################################
-    cap = cv2.VideoCapture('./dataset/test.avi')
-    marge_x = 1
-    marge_y = 1
-    seuil_bas=45
+    #cap = cv2.VideoCapture('./dataset/test.avi')
+    #marge_x = 1
+    #marge_y = 1
+    #seuil_bas=45
     ##############################################################################
     #cap = cv2.VideoCapture('./dataset/Arena_repoGS_Atxn3.avi')
     #marge_x = 1
@@ -50,31 +62,51 @@ def main():
     #marge_x = 1
     #marge_y = 1
     #seuil_bas = 60
-    
-    
+
+    marge_x = 1
+    marge_y = 1
+    seuil_bas=60
+
+    print("[INFO] sampling THREADED frames from `picamera` module...")
+    vs = PiVideoStream((640,480),30).start()
+    time.sleep(2.0)
+
     
     # Check if camera opened successfully
-    if (cap.isOpened()== False): 
-        print("Error opening video stream or file")
+    #if (cap.isOpened()== False): 
+    #    print("Error opening video stream or file")
     
     init_once = False
     numFrame = 0
     #init du tracker
     tracker = MultipleObjectTracker()
+    fps = FPS().start()
 
-    while(cap.isOpened()):
+    cv2.namedWindow("res")
+    cv2.createTrackbar('Seuil','res',60,255,nothing)
+    cv2.createTrackbar('Display','res',1,3,nothing)
+
+    display_flag = 1
+    #0 : aucun affichage
+    #1 : correspond à l'affichage des plots
+    #2 : correspond à l'affichage continue des pistes
+
+    
+    while True:#(cap.isOpened()):
         print('***************************************************************')
         # Take each frame
-        ret, frame_full = cap.read()
+        #ret, frame_full = cap.read()
+
+        frame_full = vs.read()
         height, width, _ = frame_full.shape
         frame = frame_full[marge_y:height-marge_y, marge_x:width-marge_x]
-        if ret == False:
-            continue
+        #if ret == False:
+        #    continue
         
         # Convert BGR to gray
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         #frame = cv2.line(frame, (A[0],A[1]),(B[0],B[1]), np.array((0,255.,0)) , 2)
-        cv2.imshow('frameRGB',frame)
+        #cv2.imshow('frameRGB',frame)
         # initialization of mask and store frame    
         if not init_once:
             
@@ -83,12 +115,16 @@ def main():
             old_gray = np.zeros_like(frame)
             num_plot = 0
             init_once = True
+            
+        seuil_bas = cv2.getTrackbarPos('Seuil','res')
+        display_flag = cv2.getTrackbarPos('Display','res')
         
         ret,thresh2 = cv2.threshold(gray,seuil_bas,255,cv2.THRESH_BINARY_INV)
         thresh2_dilate = cv2.dilate(thresh2,kernel,iterations = 1)
         thresh2_median  = cv2.medianBlur(thresh2_dilate,5)
-        
-        cv2.imshow('maskMedian',thresh2_median)
+        if display_flag==3:
+            cv2.imshow('maskMedian',thresh2_median)
+
         im2, contours, hierarchy = cv2.findContours(thresh2_median,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
         
         pos_t = np.empty((0,1,4), dtype='float32')
@@ -109,7 +145,8 @@ def main():
             if(area>15):
                 (cx,cy),(MA,ma),angle = cv2.fitEllipse(cnt)
                 ellipse = cv2.fitEllipse(cnt)
-                frame = cv2.ellipse(frame,ellipse, (0,255,0), 1)
+                if display_flag==1:
+                    frame = cv2.ellipse(frame,ellipse, (0,255,0), 1)
             else:
                 if(M['m00']!=0):
                     cx = (M['m10']/M['m00'])
@@ -135,27 +172,37 @@ def main():
         for i, track in enumerate(tracker.tracks):
             if track.has_match is True:
                 print("PISTE "  + str(i) + " label : " + str(track.label)  + " X: " + str(track.plot[0][0]) + " Y: " + str(track.plot[0][1]) + " Theta: " + str(track.plot[0][2]) + " S: " + str(track.plot[0][3]))
-                #mask = cv2.circle(mask,(track.plot[0][0],track.plot[0][1]), 2, color[track.label].tolist(), -1)
-                #mask = cv2.line(mask, (int(track.old_plot[0][0]),int(track.old_plot[0][1])),(int(track.plot[0][0]),int(track.plot[0][1])), color[track.label].tolist(), 2)
+                if display_flag==2:
+                    mask = cv2.circle(mask,(track.plot[0][0],track.plot[0][1]), 2, color[track.label].tolist(), -1)
+                    mask = cv2.line(mask, (int(track.old_plot[0][0]),int(track.old_plot[0][1])),(int(track.plot[0][0]),int(track.plot[0][1])), color[track.label].tolist(), 2)
+                    
                 cv2.putText(frame,str(track.label),(track.plot[0][0],track.plot[0][1]), font, 0.4,(255,0,0),1,cv2.LINE_AA)
             #if track.has_match is False:
                 #cv2.putText(frame,str(track.label),(track.plot[0][0],track.plot[0][1]), font, 0.4,(48, 214, 232),1,cv2.LINE_AA)
         img = cv2.add(frame,mask)
-        
-        cv2.imshow('res',img)
+
+        if display_flag<3:
+            cv2.imshow('res',img)
         
         old_gray = gray.copy()
         
         numFrame = numFrame + 1
         pos_tm1=pos_t
         
-        
+        fps.update()
+
+        if numFrame%50 ==  0 :
+            fps.stop()
+            print("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
+            fps = FPS().start()
         
         k = cv2.waitKey(25) & 0xFF
         if k == 27:
             cv2.destroyAllWindows()
             break
-    cap.release()
+    vs.stop()
+
+    #cap.release()
 
 
 if __name__ == '__main__':
