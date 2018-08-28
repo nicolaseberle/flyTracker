@@ -4,8 +4,10 @@ import cv2
 import numpy as np
 from multipleObjectTracker_3 import MultipleObjectTracker
 import tracker_constant as const
+import argparse
 
-def main():
+
+def main(args):
     #X vers le bas, Y vers la droite
     A = [ 45 , 95   ]
     B = [ 250 , 95  ]
@@ -19,38 +21,13 @@ def main():
                        maxLevel = 1,
                        criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 50, 0.1))
     
-    # Select one video and data in this list ()
-    ##############################################################################
-    cap = cv2.VideoCapture('./dataset/out.mp4')
+
+    ############################################################################
+    cap = cv2.VideoCapture(args['input_video'])
     marge_x = 1
-    marge_y = 1
-    seuil_bas=45
-    ##############################################################################
-    #cap = cv2.VideoCapture('./dataset/VID_20171222_162237.mp4')
-    #marge_x = 200
-    #marge_y = 1
-    #seuil_bas=45
-    ##############################################################################
-    #cap = cv2.VideoCapture('./dataset/VID_20171222_153941.mp4')
-    #marge_x = 200
-    #marge_y = 1
-    #seuil_bas=45
-    ##############################################################################
-    cap = cv2.VideoCapture('./dataset/test.avi')
-    marge_x = 1
-    marge_y = 1
-    seuil_bas=45
-    ##############################################################################
-    #cap = cv2.VideoCapture('./dataset/Arena_repoGS_Atxn3.avi')
-    #marge_x = 1
-    #marge_y = 1
-    #seuil_bas=45
-    ##############################################################################
-    #cap = cv2.VideoCapture('./dataset/arene11.avi')
-    #marge_x = 1
-    #marge_y = 1
-    #seuil_bas = 60
-    
+    marge_y = 20
+    seuil_bas=70
+    ############################################################################    
     
     
     # Check if camera opened successfully
@@ -66,10 +43,12 @@ def main():
         print('***************************************************************')
         # Take each frame
         ret, frame_full = cap.read()
-        height, width, _ = frame_full.shape
-        frame = frame_full[marge_y:height-marge_y, marge_x:width-marge_x]
+
         if ret == False:
             continue
+
+        height, width, _ = frame_full.shape
+        frame = frame_full[marge_y:height-marge_y, marge_x:width-marge_x]
         
         # Convert BGR to gray
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -106,7 +85,7 @@ def main():
             box = cv2.boxPoints(rect)
             box = np.int0(box)
             #print(area , ' ' , rect)
-            if(area>15):
+            if(area>80):
                 (cx,cy),(MA,ma),angle = cv2.fitEllipse(cnt)
                 ellipse = cv2.fitEllipse(cnt)
                 frame = cv2.ellipse(frame,ellipse, (0,255,0), 1)
@@ -136,8 +115,8 @@ def main():
             if track.has_match is True:
                 print("PISTE "  + str(i) + " label : " + str(track.label)  + " X: " + str(track.plot[0][0]) + " Y: " + str(track.plot[0][1]) + " Theta: " + str(track.plot[0][2]) + " S: " + str(track.plot[0][3]))
                 #mask = cv2.circle(mask,(track.plot[0][0],track.plot[0][1]), 2, color[track.label].tolist(), -1)
-                #mask = cv2.line(mask, (int(track.old_plot[0][0]),int(track.old_plot[0][1])),(int(track.plot[0][0]),int(track.plot[0][1])), color[track.label].tolist(), 2)
-                cv2.putText(frame,str(track.label),(track.plot[0][0],track.plot[0][1]), font, 0.4,(255,0,0),1,cv2.LINE_AA)
+                mask = cv2.line(mask, (int(track.old_plot[0][0]),int(track.old_plot[0][1])),(int(track.plot[0][0]),int(track.plot[0][1])), color[track.label].tolist(), 2)
+                #cv2.putText(frame,str(track.label),(track.plot[0][0],track.plot[0][1]), font, 0.4,(255,0,0),1,cv2.LINE_AA)
             #if track.has_match is False:
                 #cv2.putText(frame,str(track.label),(track.plot[0][0],track.plot[0][1]), font, 0.4,(48, 214, 232),1,cv2.LINE_AA)
         img = cv2.add(frame,mask)
@@ -159,4 +138,12 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+
+    # construct the argument parse and parse the arguments
+    ap = argparse.ArgumentParser()
+    ap.add_argument("-i", "--input-video", type=str, default='./dataset/out.mp4',
+                    help="# relative path of the input video to analyse")
+    
+    args = vars(ap.parse_args())
+
+    main(args)
