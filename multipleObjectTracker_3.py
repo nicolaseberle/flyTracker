@@ -93,7 +93,7 @@ class MultipleObjectTracker(object):
 
         # create new tracks from unassigned detections:
         for _plot in plots:
-            if _plot.has_match is False and _plot.plot[0][3]>60:
+            if _plot.has_match is False and _plot.plot[0][3]>20:
                 if const.VERBOSE_FULL is True: 
                     print("create new tracks from unassigned plot ")
                 t = Track(self.indiceTrack)

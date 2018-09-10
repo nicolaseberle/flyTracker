@@ -26,7 +26,7 @@ def main(args):
     cap = cv2.VideoCapture(args['input_video'])
     marge_x = 1
     marge_y = 1
-    seuil_bas=60
+    seuil_bas=70
     ############################################################################    
     
     
@@ -34,10 +34,6 @@ def main(args):
     if (cap.isOpened()== False): 
         print("Error opening video stream or file")
     
-    for counter in range(30):
-        ret, frame_full = cap.read()
-        
-        
     init_once = False
     numFrame = 0
     #init du tracker
@@ -68,7 +64,6 @@ def main(args):
             init_once = True
         
         ret,thresh2 = cv2.threshold(gray,seuil_bas,255,cv2.THRESH_BINARY_INV)
-        #thresh2_dilate = cv2.erode(thresh2,kernel,iterations = 1)
         thresh2_dilate = cv2.dilate(thresh2,kernel,iterations = 1)
         thresh2_median  = cv2.medianBlur(thresh2_dilate,5)
         
@@ -90,7 +85,7 @@ def main(args):
             box = cv2.boxPoints(rect)
             box = np.int0(box)
             #print(area , ' ' , rect)
-            if(area>10000):
+            if(area>80):
                 (cx,cy),(MA,ma),angle = cv2.fitEllipse(cnt)
                 ellipse = cv2.fitEllipse(cnt)
                 frame = cv2.ellipse(frame,ellipse, (0,255,0), 1)
@@ -120,8 +115,8 @@ def main(args):
             if track.has_match is True:
                 print("PISTE "  + str(i) + " label : " + str(track.label)  + " X: " + str(track.plot[0][0]) + " Y: " + str(track.plot[0][1]) + " Theta: " + str(track.plot[0][2]) + " S: " + str(track.plot[0][3]))
                 #mask = cv2.circle(mask,(track.plot[0][0],track.plot[0][1]), 2, color[track.label].tolist(), -1)
-                mask = cv2.line(mask, (int(track.old_plot[0][0]),int(track.old_plot[0][1])),(int(track.plot[0][0]),int(track.plot[0][1])), color[track.label].tolist(), 1)
-                cv2.putText(frame,str(track.label),(track.plot[0][0],track.plot[0][1]), font, 0.4,(255,0,0),1,cv2.LINE_AA)
+                mask = cv2.line(mask, (int(track.old_plot[0][0]),int(track.old_plot[0][1])),(int(track.plot[0][0]),int(track.plot[0][1])), color[track.label].tolist(), 2)
+                #cv2.putText(frame,str(track.label),(track.plot[0][0],track.plot[0][1]), font, 0.4,(255,0,0),1,cv2.LINE_AA)
             #if track.has_match is False:
                 #cv2.putText(frame,str(track.label),(track.plot[0][0],track.plot[0][1]), font, 0.4,(48, 214, 232),1,cv2.LINE_AA)
         img = cv2.add(frame,mask)
@@ -131,24 +126,14 @@ def main(args):
         old_gray = gray.copy()
         
         numFrame = numFrame + 1
-        pos_tm1 = pos_t
+        pos_tm1=pos_t
         
         
         
-        k = cv2.waitKey(25)
+        k = cv2.waitKey(25) & 0xFF
         if k == 27:
             cv2.destroyAllWindows()
             break
-        elif k==-1:  # normally -1 returned,so don't print it
-            continue
-        elif k==ord('p'):
-            while True:
-                c = cv2.waitKey(25)        
-                if c == ord('p'):
-                    break
-        else:
-            print(k) # else print its value
-        
     cap.release()
 
 
@@ -156,7 +141,7 @@ if __name__ == '__main__':
 
     # construct the argument parse and parse the arguments
     ap = argparse.ArgumentParser()
-    ap.add_argument("-i", "--input-video", type=str, default='/media/neberle/6CEC5E62EC5E271C/Backup_Linux/fly_tracker/dataset_/test.avi',
+    ap.add_argument("-i", "--input-video", type=str, default='/media/neberle/6CEC5E62EC5E271C/Backup_Linux/fly_tracker/dataset/test.avi',
                     help="# relative path of the input video to analyse")
     
     args = vars(ap.parse_args())
