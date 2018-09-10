@@ -26,6 +26,7 @@ def findCentroids(ext_img):
     cv2.imshow('imagette',ext_img)
 
 def main(args):
+    flag_hidden_tracks = False
     alpha_1 = 0.5 # transparency of the mask to see the tracks
     alpha_2 = 0 # transparency of the mask to see the tracks
     #X vers le bas, Y vers la droite
@@ -147,6 +148,9 @@ def main(args):
                 #cv2.putText(frame,str(track.label),(track.plot[0][0],track.plot[0][1]), font, 0.4,(48, 214, 232),1,cv2.LINE_AA)
         cv2.putText(frame,'frame ' + str(numFrame),(10,20), font, 0.4,(255,0,0),1,cv2.LINE_AA)
         
+        if flag_hidden_tracks==True:
+            cv2.putText(frame,"fade out activate",(10,40), font, 0.4,(255,0,0),1,cv2.LINE_AA)
+            
         img = cv2.addWeighted(mask, 1, frame, 1, 0)
         cv2.addWeighted(mask, alpha_1, mask, 0.5, alpha_2 ,mask)
         
@@ -164,10 +168,10 @@ def main(args):
             cv2.destroyAllWindows()
             break
         elif k==ord('a'):
-            if flag_hidden_tracks == True:
+            if flag_hidden_tracks == False:
                 alpha_1 = 0.495
                 alpha_2 = -1
-                flag_hidden_tracks = False
+                flag_hidden_tracks = True
                 continue
             else:
                 alpha_1 = 0.5
