@@ -26,6 +26,8 @@ def findCentroids(ext_img):
     cv2.imshow('imagette',ext_img)
 
 def main(args):
+    alpha_1 = 0.5 # transparency of the mask to see the tracks
+    alpha_2 = 0 # transparency of the mask to see the tracks
     #X vers le bas, Y vers la droite
     A = [ 45 , 95   ]
     B = [ 250 , 95  ]
@@ -146,7 +148,7 @@ def main(args):
         cv2.putText(frame,'frame ' + str(numFrame),(10,20), font, 0.4,(255,0,0),1,cv2.LINE_AA)
         
         img = cv2.addWeighted(mask, 1, frame, 1, 0)
-        cv2.addWeighted(mask, 0.495, mask, 0.5, -1 ,mask)
+        cv2.addWeighted(mask, alpha_1, mask, 0.5, alpha_2 ,mask)
         
         cv2.imshow('res',img)
         
@@ -161,6 +163,16 @@ def main(args):
         if k == 27:
             cv2.destroyAllWindows()
             break
+        elif k==ord('a'):
+            if flag_hidden_tracks == True:
+                alpha_1 = 0.495
+                alpha_2 = -1
+                flag_hidden_tracks = False
+                continue
+            else:
+                alpha_1 = 0.5
+                alpha_2 = 0
+                flag_hidden_tracks = False
         elif k==-1:  # normally -1 returned,so don't print it
             continue
         elif k==ord('p'):
@@ -180,6 +192,7 @@ if __name__ == '__main__':
     ap = argparse.ArgumentParser()
     ap.add_argument("-i", "--input-video", type=str, default='/media/neberle/6CEC5E62EC5E271C/Backup_Linux/fly_tracker/dataset_/test.avi',
                     help="# relative path of the input video to analyse")
+    
     
     args = vars(ap.parse_args())
 
