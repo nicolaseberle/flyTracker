@@ -144,7 +144,9 @@ def main(args):
             #if track.has_match is False:
                 #cv2.putText(frame,str(track.label),(track.plot[0][0],track.plot[0][1]), font, 0.4,(48, 214, 232),1,cv2.LINE_AA)
         cv2.putText(frame,'frame ' + str(numFrame),(10,20), font, 0.4,(255,0,0),1,cv2.LINE_AA)
-        img = cv2.add(frame,mask)
+        
+        img = cv2.addWeighted(mask, 1, frame, 1, 0)
+        cv2.addWeighted(mask, 0.495, mask, 0.5, -1 ,mask)
         
         cv2.imshow('res',img)
         
