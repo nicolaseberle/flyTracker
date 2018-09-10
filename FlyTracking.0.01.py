@@ -6,6 +6,24 @@ from multipleObjectTracker_3 import MultipleObjectTracker
 import tracker_constant as const
 import argparse
 
+def findCentroids(ext_img):
+    element = cv2.getStructuringElement(cv2.MORPH_CROSS,(3,3))
+    done = False
+    size = np.size(ext_img)
+    skel = np.zeros(ext_img.shape,np.uint8)
+
+    while( not done):
+        eroded = cv2.erode(ext_img,element)
+        temp = cv2.dilate(eroded,element)
+        temp = cv2.subtract(ext_img,temp)
+        skel = cv2.bitwise_or(skel,temp)
+        ext_img = eroded.copy()
+    
+        zeros = size - cv2.countNonZero(img)
+        if zeros==size:
+            done = True
+    
+    cv2.imshow('imagette',ext_img)
 
 def main(args):
     #X vers le bas, Y vers la droite
@@ -39,7 +57,7 @@ def main(args):
         
         
     init_once = False
-    numFrame = 0
+    numFrame = 30
     #init du tracker
     tracker = MultipleObjectTracker()
 
@@ -89,6 +107,7 @@ def main(args):
             area = cv2.contourArea(cnt)
             box = cv2.boxPoints(rect)
             box = np.int0(box)
+            #findCentroids(thresh2_median[box[1][1]:box[2][1], box[0][0]:box[1][0]])
             #print(area , ' ' , rect)
             if(area>10000):
                 (cx,cy),(MA,ma),angle = cv2.fitEllipse(cnt)
@@ -124,6 +143,7 @@ def main(args):
                 cv2.putText(frame,str(track.label),(track.plot[0][0],track.plot[0][1]), font, 0.4,(255,0,0),1,cv2.LINE_AA)
             #if track.has_match is False:
                 #cv2.putText(frame,str(track.label),(track.plot[0][0],track.plot[0][1]), font, 0.4,(48, 214, 232),1,cv2.LINE_AA)
+        cv2.putText(frame,'frame ' + str(numFrame),(10,20), font, 0.4,(255,0,0),1,cv2.LINE_AA)
         img = cv2.add(frame,mask)
         
         cv2.imshow('res',img)
