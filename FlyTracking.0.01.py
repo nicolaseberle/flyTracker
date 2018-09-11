@@ -5,33 +5,43 @@ import numpy as np
 from multipleObjectTracker_3 import MultipleObjectTracker
 import tracker_constant as const
 import argparse
+from matplotlib import pyplot as plt
 
 def findCentroids(ext_img):
     element = cv2.getStructuringElement(cv2.MORPH_CROSS,(3,3))
     done = False
     size = np.size(ext_img)
     skel = np.zeros(ext_img.shape,np.uint8)
-
-    while( not done):
+    src = ext_img.copy()
+    iteration = 0
+    iteration_lim = 100
+    while( not done or iteration<iteration_lim):
         eroded = cv2.erode(ext_img,element)
         temp = cv2.dilate(eroded,element)
         temp = cv2.subtract(ext_img,temp)
         skel = cv2.bitwise_or(skel,temp)
         ext_img = eroded.copy()
     
-        zeros = size - cv2.countNonZero(img)
+        zeros = size - cv2.countNonZero(ext_img)
         if zeros==size:
             done = True
+        iteration = iteration + 1
+        if iteration > iteration_lim:
+            break
+    nb_element = cv2.sumElems(skel)
+    nb_element = float(nb_element[0]) / 255.0
     
-    cv2.imshow('imagette',ext_img)
+    return nb_element
 
 def main(args):
+    
+    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
+    
     flag_hidden_tracks = False
+    
     alpha_1 = 0.5 # transparency of the mask to see the tracks
     alpha_2 = 0 # transparency of the mask to see the tracks
     #X vers le bas, Y vers la droite
-    A = [ 45 , 95   ]
-    B = [ 250 , 95  ]
     
     #kernel = np.ones((3,3),np.uint8)
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(3,3))
@@ -83,9 +93,7 @@ def main(args):
         if not init_once:
             
             mask = np.zeros_like(frame)
-            mask2 = np.zeros_like(frame)
             old_gray = np.zeros_like(frame)
-            num_plot = 0
             init_once = True
         
         ret,thresh2 = cv2.threshold(gray,seuil_bas,255,cv2.THRESH_BINARY_INV)
@@ -100,7 +108,9 @@ def main(args):
         
         #For each blob/contour 
         for cnt in contours:
+            
             rect = cv2.minAreaRect(cnt)
+            x, y, w, h = cv2.boundingRect(cnt)
             perimeter = cv2.arcLength(cnt,True)
             #if the perimeteter is too high, then this blob is ignored 
             if perimeter > const.MAX_PERIMETER_BLOB:
@@ -110,31 +120,99 @@ def main(args):
             area = cv2.contourArea(cnt)
             box = cv2.boxPoints(rect)
             box = np.int0(box)
-            #findCentroids(thresh2_median[box[1][1]:box[2][1], box[0][0]:box[1][0]])
-            #print(area , ' ' , rect)
-            if(area>10000):
-                (cx,cy),(MA,ma),angle = cv2.fitEllipse(cnt)
-                ellipse = cv2.fitEllipse(cnt)
-                frame = cv2.ellipse(frame,ellipse, (0,255,0), 1)
-            else:
-                if(M['m00']!=0):
-                    cx = (M['m10']/M['m00'])
-                    cy = (M['m01']/M['m00'])
-                    MA = 2
-                    ma = 2
-                    angle = 0
-                else:
-                    cx = ((box[0][0] + box[1][0] + box[2][0] + box[3][0])/4)
-                    cy = ((box[0][1] + box[1][1] + box[2][1] + box[3][1])/4)
-                    angle = 0
-                    MA = 2
-                    ma = 2
-                    angle = 0
+            # define criteria and apply kmeans()
             
-            #cv2.drawContours(frame,[box],0,(0,0,255),2)
-            current_plot = np.array([[[ cx,cy,angle*np.pi/180,area ]]],dtype='float32')
-            #pos_t centroids of blob at time t
-            pos_t = np.concatenate((pos_t,current_plot))
+            
+            nb_element = findCentroids(thresh2_median[y:y+h, x:x+w])
+            #warning : two plots are merged
+            print(area,nb_element)
+            if nb_element > 16 and nb_element<35  and area > 60 and area <150:
+                
+                pixelpointsCV2 = cv2.findNonZero(thresh2_median[y:y+h, x:x+w])
+                Z = np.float32(pixelpointsCV2)
+                ret,label,center = cv2.kmeans(Z,2,None,criteria,10,cv2.KMEANS_RANDOM_CENTERS)
+                dist_center = np.sqrt(float(center[0][0]-center[1][0])*float(center[0][0]-center[1][0])+float(center[0][1]-center[1][1])*float(center[0][1]-center[1][1]))
+                angle = 0
+                MA = 2
+                ma = 2
+                angle = 0
+                #check that is not the same blob
+                if dist_center < 4:
+                    #it's the same blob. limit the total element with one element
+                    max_element = 1
+                else:
+                    #it's not the same blob. 2 elements
+                    max_element = 2
+                    
+                for num in range(max_element):
+                    cx = float(center[num][0]) + x
+                    cy = float(center[num][1]) + y
+                    area = np.sum(label == num)
+                    #we record the first blob, the second will be at the and of the loop
+                    current_plot = np.array([[[ cx,cy,angle*np.pi/180,area/10 ]]],dtype='float32')
+                    #pos_t centroids of blob 1 at time t
+                    pos_t = np.concatenate((pos_t,current_plot))
+                    
+#                # Now separate the data, Note the flatten()
+#                A = Z[label==0]
+#                B = Z[label==1]
+#                
+#                # Plot the data
+#                plt.scatter(A[:,0],A[:,1])
+#                plt.scatter(B[:,0],B[:,1],c = 'r')
+#                plt.scatter(center[:,0],center[:,1],s = 80,c = 'y', marker = 's')
+#                plt.xlabel('Height'),plt.ylabel('Weight')
+#                plt.show()
+#                
+             #warning : two plots are merged
+            elif nb_element >=35  and area >= 150:
+                
+                pixelpointsCV2 = cv2.findNonZero(thresh2_median[y:y+h, x:x+w])
+                Z = np.float32(pixelpointsCV2)
+                ret,label,center = cv2.kmeans(Z,3,None,criteria,10,cv2.KMEANS_RANDOM_CENTERS)
+                
+                
+                #check that is not the same blob
+                angle = 0
+                MA = 2
+                ma = 2
+                angle = 0
+                
+                for num in range(2):
+                    cx = float(center[num][0]) + x
+                    cy = float(center[num][1]) + y
+                    area = np.sum(label == num)
+                    #we record the first blob, the second will be at the and of the loop
+                    current_plot = np.array([[[ cx,cy,angle*np.pi/180,area/10 ]]],dtype='float32')
+                    #pos_t centroids of blob 1 at time t
+                    pos_t = np.concatenate((pos_t,current_plot))
+                    
+            else:
+                
+                if(area>10000):
+                    (cx,cy),(MA,ma),angle = cv2.fitEllipse(cnt)
+                    ellipse = cv2.fitEllipse(cnt)
+                    frame = cv2.ellipse(frame,ellipse, (0,255,0), 1)
+                else:
+                    if(M['m00']!=0):
+                        cx = (M['m10']/M['m00'])
+                        cy = (M['m01']/M['m00'])
+                        MA = 2
+                        ma = 2
+                        angle = 0
+                    else:
+                        cx = ((box[0][0] + box[1][0] + box[2][0] + box[3][0])/4)
+                        cy = ((box[0][1] + box[1][1] + box[2][1] + box[3][1])/4)
+                        angle = 0
+                        MA = 2
+                        ma = 2
+                        angle = 0
+            
+                
+                #cv2.drawContours(frame,[box],0,(0,0,255),2)
+                current_plot = np.array([[[ cx,cy,angle*np.pi/180,area/10 ]]],dtype='float32')
+                #pos_t centroids of blob at time t
+                pos_t = np.concatenate((pos_t,current_plot))
         #update of the tracker with new plots
         tracker.update_tracks(pos_t)
         font = cv2.FONT_HERSHEY_SIMPLEX

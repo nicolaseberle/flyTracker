@@ -1,5 +1,0 @@
-opencv-python
-numpy==1.12.0rc2
-picamera==1.13
-Pillow
-imutils
