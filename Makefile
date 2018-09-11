@@ -11,7 +11,7 @@ VENV_LIB = venv/lib/python3.5
 VENV_CV2 = $(VENV_LIB)/cv2.so
 
 # Find cv2 library for the global Python installation.
-GLOBAL_CV2 := $(shell python3 -c 'import cv2; print(cv2)' | awk '{print $$4}' | sed s:"['>]":"":g)
+GLOBAL_CV2 := $(shell python3.5 -c 'import cv2; print(cv2)' | awk '{print $$4}' | sed s:"['>]":"":g)
 
 
 

@@ -12,7 +12,7 @@ def findCentroids(ext_img):
     done = False
     size = np.size(ext_img)
     skel = np.zeros(ext_img.shape,np.uint8)
-    src = ext_img.copy()
+    
     iteration = 0
     iteration_lim = 100
     while( not done or iteration<iteration_lim):
@@ -88,7 +88,8 @@ def main(args):
         # Convert BGR to gray
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         #frame = cv2.line(frame, (A[0],A[1]),(B[0],B[1]), np.array((0,255.,0)) , 2)
-        cv2.imshow('frameRGB',frame)
+        if args['no_preview'] == 1:
+            cv2.imshow('frameRGB',frame)
         # initialization of mask and store frame    
         if not init_once:
             
@@ -101,7 +102,9 @@ def main(args):
         thresh2_dilate = cv2.dilate(thresh2,kernel,iterations = 1)
         thresh2_median  = cv2.medianBlur(thresh2_dilate,5)
         
-        cv2.imshow('maskMedian',thresh2_median)
+        if args['no_preview'] == 1:
+            cv2.imshow('maskMedian',thresh2_median)
+            
         im2, contours, hierarchy = cv2.findContours(thresh2_median,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
         
         pos_t = np.empty((0,1,4), dtype='float32')
@@ -125,7 +128,6 @@ def main(args):
             
             nb_element = findCentroids(thresh2_median[y:y+h, x:x+w])
             #warning : two plots are merged
-            print(area,nb_element)
             if nb_element >= 15 and nb_element<31  and area > 60 and area <180:
                 
                 pixelpointsCV2 = cv2.findNonZero(thresh2_median[y:y+h, x:x+w])
@@ -218,6 +220,7 @@ def main(args):
         #update of the tracker with new plots
         tracker.update_tracks(pos_t)
         font = cv2.FONT_HERSHEY_SIMPLEX
+        print("num frame : " + str(numFrame))
         for i, track in enumerate(tracker.tracks):
             if track.has_match is True:
                 print("PISTE "  + str(i) + " label : " + str(track.label)  + " X: " + str(track.plot[0][0]) + " Y: " + str(track.plot[0][1]) + " Theta: " + str(track.plot[0][2]) + " S: " + str(track.plot[0][3]))
@@ -234,7 +237,8 @@ def main(args):
         img = cv2.addWeighted(mask, 1, frame, 1, 0)
         cv2.addWeighted(mask, alpha_1, mask, 0.5, alpha_2 ,mask)
         
-        cv2.imshow('res',img)
+        if args['no_preview'] == 1:
+            cv2.imshow('res',img)
         
         old_gray = gray.copy()
         
@@ -242,30 +246,30 @@ def main(args):
         pos_tm1 = pos_t
         
         
-        
-        k = cv2.waitKey(25)
-        if k == 27:
-            cv2.destroyAllWindows()
-            break
-        elif k==ord('a'):
-            if flag_hidden_tracks == False:
-                alpha_1 = 0.495
-                alpha_2 = -1
-                flag_hidden_tracks = True
+        if args['no_preview'] == 1:
+            k = cv2.waitKey(25)
+            if k == 27:
+                cv2.destroyAllWindows()
+                break
+            elif k==ord('a'):
+                if flag_hidden_tracks == False:
+                    alpha_1 = 0.495
+                    alpha_2 = -1
+                    flag_hidden_tracks = True
+                    continue
+                else:
+                    alpha_1 = 0.5
+                    alpha_2 = 0
+                    flag_hidden_tracks = False
+            elif k==-1:  # normally -1 returned,so don't print it
                 continue
+            elif k==ord('p'):
+                while True:
+                    c = cv2.waitKey(25)        
+                    if c == ord('p'):
+                        break
             else:
-                alpha_1 = 0.5
-                alpha_2 = 0
-                flag_hidden_tracks = False
-        elif k==-1:  # normally -1 returned,so don't print it
-            continue
-        elif k==ord('p'):
-            while True:
-                c = cv2.waitKey(25)        
-                if c == ord('p'):
-                    break
-        else:
-            print(k) # else print its value
+                print(k) # else print its value
         
     cap.release()
 
@@ -276,7 +280,11 @@ if __name__ == '__main__':
     ap = argparse.ArgumentParser()
     ap.add_argument("-i", "--input-video", type=str, default='/media/neberle/6CEC5E62EC5E271C/Backup_Linux/fly_tracker/dataset_/test.avi',
                     help="# relative path of the input video to analyse")
-    
+    ap.add_argument("-n", "--no-preview", type=str, default=1,
+                    help="# desactivate the preview of the results")
+    #not used
+    ap.add_argument("-o", "--output", type=str, default=const.DIR_WORKSPACE,
+                    help="# output directory")
     
     args = vars(ap.parse_args())
 

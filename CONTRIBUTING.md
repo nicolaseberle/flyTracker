@@ -1,5 +1,8 @@
 #TO TO LIST
 
+##Dependances
+ - Mettre en place un environnement virtuel pour gérer les dépendances
+
 ##Stabiliser la solution
 
  - ajustement automatique du seuil d'extraction des drosophiles
