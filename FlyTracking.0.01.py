@@ -126,7 +126,7 @@ def main(args):
             nb_element = findCentroids(thresh2_median[y:y+h, x:x+w])
             #warning : two plots are merged
             print(area,nb_element)
-            if nb_element > 16 and nb_element<35  and area > 60 and area <150:
+            if nb_element >= 15 and nb_element<31  and area > 60 and area <180:
                 
                 pixelpointsCV2 = cv2.findNonZero(thresh2_median[y:y+h, x:x+w])
                 Z = np.float32(pixelpointsCV2)
@@ -137,7 +137,7 @@ def main(args):
                 ma = 2
                 angle = 0
                 #check that is not the same blob
-                if dist_center < 4:
+                if dist_center < 1:
                     #it's the same blob. limit the total element with one element
                     max_element = 1
                 else:
@@ -149,23 +149,15 @@ def main(args):
                     cy = float(center[num][1]) + y
                     area = np.sum(label == num)
                     #we record the first blob, the second will be at the and of the loop
-                    current_plot = np.array([[[ cx,cy,angle*np.pi/180,area/10 ]]],dtype='float32')
+                    current_plot = np.array([[[ cx,cy,angle*np.pi/180,0*area/10 ]]],dtype='float32')
                     #pos_t centroids of blob 1 at time t
                     pos_t = np.concatenate((pos_t,current_plot))
-                    
-#                # Now separate the data, Note the flatten()
-#                A = Z[label==0]
-#                B = Z[label==1]
-#                
-#                # Plot the data
-#                plt.scatter(A[:,0],A[:,1])
-#                plt.scatter(B[:,0],B[:,1],c = 'r')
-#                plt.scatter(center[:,0],center[:,1],s = 80,c = 'y', marker = 's')
-#                plt.xlabel('Height'),plt.ylabel('Weight')
-#                plt.show()
-#                
+
+                        
+                
+                
              #warning : two plots are merged
-            elif nb_element >=35  and area >= 150:
+            elif nb_element >=31  and area >= 180:
                 
                 pixelpointsCV2 = cv2.findNonZero(thresh2_median[y:y+h, x:x+w])
                 Z = np.float32(pixelpointsCV2)
@@ -183,10 +175,20 @@ def main(args):
                     cy = float(center[num][1]) + y
                     area = np.sum(label == num)
                     #we record the first blob, the second will be at the and of the loop
-                    current_plot = np.array([[[ cx,cy,angle*np.pi/180,area/10 ]]],dtype='float32')
+                    current_plot = np.array([[[ cx,cy,angle*np.pi/180,0*area/10 ]]],dtype='float32')
                     #pos_t centroids of blob 1 at time t
                     pos_t = np.concatenate((pos_t,current_plot))
-                    
+#               # Now separate the data, Note the flatten()
+#                A = Z[label==0]
+#                B = Z[label==1]
+#                C = Z[label==2]
+#                # Plot the data
+#                plt.scatter(A[:,0],A[:,1])
+#                plt.scatter(B[:,0],B[:,1],c = 'r')
+#                plt.scatter(C[:,0],C[:,1],c = 'g')
+#                plt.scatter(center[:,0],center[:,1],s = 80,c = 'y', marker = 's')
+#                plt.xlabel('Height'),plt.ylabel('Weight')
+#                plt.show()     
             else:
                 
                 if(area>10000):
@@ -210,7 +212,7 @@ def main(args):
             
                 
                 #cv2.drawContours(frame,[box],0,(0,0,255),2)
-                current_plot = np.array([[[ cx,cy,angle*np.pi/180,area/10 ]]],dtype='float32')
+                current_plot = np.array([[[ cx,cy,angle*np.pi/180,0*area/10 ]]],dtype='float32')
                 #pos_t centroids of blob at time t
                 pos_t = np.concatenate((pos_t,current_plot))
         #update of the tracker with new plots

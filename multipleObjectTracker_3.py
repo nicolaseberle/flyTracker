@@ -14,7 +14,7 @@ import csv
 class MultipleObjectTracker(object):
     def __init__(self):
         self.tracks = []
-        self.indiceTrack = 1
+        self.indiceTrack = 0
         self.indiceFrame = 0
         
     def __delete_duplicate_tracks(self):
