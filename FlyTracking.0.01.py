@@ -7,7 +7,12 @@ import tracker_constant as const
 import argparse
 from matplotlib import pyplot as plt
 
-def findCentroids(ext_img):
+from tkinter import *
+from tkinter import filedialog
+ 
+
+
+def findNbCentroids(ext_img):
     element = cv2.getStructuringElement(cv2.MORPH_CROSS,(3,3))
     done = False
     size = np.size(ext_img)
@@ -57,7 +62,7 @@ def main(args):
     cap = cv2.VideoCapture(args['input_video'])
     marge_x = 1
     marge_y = 1
-    seuil_bas=60
+    seuil_bas=70
     ############################################################################    
     
     
@@ -88,8 +93,8 @@ def main(args):
         # Convert BGR to gray
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         #frame = cv2.line(frame, (A[0],A[1]),(B[0],B[1]), np.array((0,255.,0)) , 2)
-        if args['no_preview'] == 1:
-            cv2.imshow('frameRGB',frame)
+        #if args['no_preview'] == 1:
+            #cv2.imshow('frameRGB',frame)
         # initialization of mask and store frame    
         if not init_once:
             
@@ -126,7 +131,7 @@ def main(args):
             # define criteria and apply kmeans()
             
             
-            nb_element = findCentroids(thresh2_median[y:y+h, x:x+w])
+            nb_element = findNbCentroids(thresh2_median[y:y+h, x:x+w])
             #warning : two plots are merged
             if nb_element >= 15 and nb_element<31  and area > 60 and area <180:
                 
@@ -278,7 +283,7 @@ if __name__ == '__main__':
 
     # construct the argument parse and parse the arguments
     ap = argparse.ArgumentParser()
-    ap.add_argument("-i", "--input-video", type=str, default='/media/neberle/6CEC5E62EC5E271C/Backup_Linux/fly_tracker/dataset_/test.avi',
+    ap.add_argument("-i", "--input-video", type=str, default=-1,
                     help="# relative path of the input video to analyse")
     ap.add_argument("-n", "--no-preview", type=str, default=1,
                     help="# desactivate the preview of the results")
@@ -287,5 +292,10 @@ if __name__ == '__main__':
                     help="# output directory")
     
     args = vars(ap.parse_args())
-
+    
+    if args["input_video"] == -1:
+        args["input_video"] = filedialog.askopenfilename(initialdir = "/",title = "Select file",filetypes = (("vid","*.h264"),("all files","*.*")))
+        if len(args["input_video"])==0:
+            print("no input file -> no analysis")
+            exit(0)
     main(args)
