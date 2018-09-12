@@ -3,6 +3,7 @@
 import cv2
 import numpy as np
 from multipleObjectTracker_3 import MultipleObjectTracker
+from genMosaic import GenMosaic
 import tracker_constant as const
 import argparse
 from matplotlib import pyplot as plt
@@ -41,6 +42,7 @@ def findNbCentroids(ext_img):
 def main(args):
     
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
+    font = cv2.FONT_HERSHEY_SIMPLEX
     
     flag_hidden_tracks = False
     
@@ -61,7 +63,7 @@ def main(args):
     ############################################################################
     cap = cv2.VideoCapture(args['input_video'])
     marge_x = 1
-    marge_y = 30
+    marge_y = 20
     seuil_bas=70
     ############################################################################    
     
@@ -78,6 +80,7 @@ def main(args):
     numFrame = 30
     #init du tracker
     tracker = MultipleObjectTracker()
+    mosaic = GenMosaic()
 
     while(cap.isOpened()):
         print('***************************************************************')
@@ -128,8 +131,9 @@ def main(args):
             area = cv2.contourArea(cnt)
             box = cv2.boxPoints(rect)
             box = np.int0(box)
-            # define criteria and apply kmeans()
             
+            mosaic.addImage(frame[y:y+h, x:x+w])
+                
             
             nb_element = findNbCentroids(thresh2_median[y:y+h, x:x+w])
             #warning : two plots are merged
@@ -224,7 +228,7 @@ def main(args):
                 pos_t = np.concatenate((pos_t,current_plot))
         #update of the tracker with new plots
         tracker.update_tracks(pos_t)
-        font = cv2.FONT_HERSHEY_SIMPLEX
+        
         print("num frame : " + str(numFrame))
         for i, track in enumerate(tracker.tracks):
             if track.has_match is True:
@@ -245,10 +249,7 @@ def main(args):
         if args['no_preview'] == 1:
             cv2.imshow('res',img)
         
-        old_gray = gray.copy()
-        
         numFrame = numFrame + 1
-        pos_tm1 = pos_t
         
         
         if args['no_preview'] == 1:
@@ -290,7 +291,9 @@ if __name__ == '__main__':
     #not used
     ap.add_argument("-o", "--output", type=str, default=const.DIR_WORKSPACE,
                     help="# output directory")
-    
+    ap.add_argument("-m", "--magic", type=str, default=0,
+                    help="# magic option")
+                    
     args = vars(ap.parse_args())
     
     if args["input_video"] == -1:
