@@ -95,12 +95,12 @@ def main(args):
     if (cap.isOpened()== False): 
         print("Error opening video stream or file")
     
-    for counter in range(30):
+    for counter in range(1900):
         ret, frame_full = cap.read()
         
         
     init_once = False
-    numFrame = 30
+    numFrame = 1900
     #init du tracker
     tracker = MultipleObjectTracker()
     if args['magic'] == "1":
@@ -246,9 +246,10 @@ def main(args):
                 if number_points<=n:
                     cx = ((box[0][0] + box[1][0] + box[2][0] + box[3][0])/4)
                     cy = ((box[0][1] + box[1][1] + box[2][1] + box[3][1])/4)
-                    centroids.append(int(cx))
-                    centroids.append(int(cy))
-                    centroids.append(n)
+                    for num in range(n):
+                        centroids.append(int(cx))
+                        centroids.append(int(cy))
+                        centroids.append(n)
                 else:
                     ret,label,center = cv2.kmeans(Z,n,None,criteria,10,cv2.KMEANS_RANDOM_CENTERS)
                     for num in range(n):
