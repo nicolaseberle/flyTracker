@@ -1,2 +1,4 @@
 numpy
-opencv-contrib-python
+sphinx
+sphinx-gallery
+scikit-learn

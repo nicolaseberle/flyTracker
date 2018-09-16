@@ -6,8 +6,9 @@
 ##Stabiliser la solution
 
  - ajustement automatique du seuil d'extraction des drosophiles
- - robustifier le calcul des seuils de détection d'amas de mouches 
-
+ - robustifier le calcul des seuils de détection d'amas de mouches
+ - robustifier le tracking en mettant une zone de recherche variable. <20 quand tout se passe bien, on augmente la taille quand on a perdu le plot
+ 
 ##Améliorer les mesures
 
  - corriger la distorsion optique (uniquement sur la position extraite des drosphile)
