@@ -240,14 +240,22 @@ def main(args):
             
             pixelpointsCV2 = cv2.findNonZero(mask_2[y:y+h, x:x+w])
             Z = np.float32(pixelpointsCV2 )
+            number_points = len(Z)
             centroids = []
             for n in range(2,const.MAX_FLIES_BY_CLUSTER + 1):
-                ret,label,center = cv2.kmeans(Z,n,None,criteria,10,cv2.KMEANS_RANDOM_CENTERS)
-                for num in range(n):
-                    centroids.append(int(float(center[num][0]) + x))
-                    centroids.append(int(float(center[num][1]) + y))
-                    centroids.append(np.sum(label == num))
-        
+                if number_points<=n:
+                    cx = ((box[0][0] + box[1][0] + box[2][0] + box[3][0])/4)
+                    cy = ((box[0][1] + box[1][1] + box[2][1] + box[3][1])/4)
+                    centroids.append(int(cx))
+                    centroids.append(int(cy))
+                    centroids.append(n)
+                else:
+                    ret,label,center = cv2.kmeans(Z,n,None,criteria,10,cv2.KMEANS_RANDOM_CENTERS)
+                    for num in range(n):
+                        centroids.append(int(float(center[num][0]) + x))
+                        centroids.append(int(float(center[num][1]) + y))
+                        centroids.append(np.sum(label == num))
+            
             
             frame = cv2.circle(frame,(int(centroids[0]),int(centroids[1])), 2, (255,255,255), -1)
             frame = cv2.circle(frame,(int(centroids[3]),int(centroids[4])), 2, (255,255,255), -1)

@@ -229,10 +229,8 @@ def testPtsInEllipse(e,pts):
     b     = e[3] / 2 + marge
     angle = e[4]*np.pi/180.
     
-    
     res = sqr((float(pts[0][0])-xc) * np.cos(angle) + (float(pts[0][1])-yc) * np.sin(angle)) / sqr(a) + \
             sqr((float(pts[0][0])-xc) * np.sin(angle) - (float(pts[0][1])-yc) * np.cos(angle)) / sqr(b)
-    print(res)
     if res<=1:
         return True
     else:

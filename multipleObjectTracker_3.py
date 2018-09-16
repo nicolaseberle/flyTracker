@@ -95,6 +95,7 @@ class MultipleObjectTracker(object):
                 self.tracks[row].num_misses = 0
                 self.tracks[row].area = plots[col].plot[0][3]
                 self.tracks[row].flag_cluster = False
+                self.tracks[row].updateStatus()
                 
 
         # create new tracks from unassigned detections:
@@ -160,7 +161,9 @@ class MultipleObjectTracker(object):
                         liste_track_no_assigned[row].has_match = True
                         liste_track_no_assigned[row].plot = liste_track_no_assigned[row].old_plot
                         liste_track_no_assigned[row].num_misses = 0
+                        liste_track_no_assigned[row].flag_cluster = True
                         liste_track_no_assigned[row].add_to_track(p_)
+                        liste_track_no_assigned[row].updateStatus()
                         liste_track_no_assigned[row].area = p_[0][3]
                             
                             
@@ -208,13 +211,14 @@ class Track(object):
         self.roi_of_search = const.MAX_PIXELS_DIST_TRACK
         self.area = -1#NOT COMPUTE DURING INIT
         self.flag_cluster = False
+        self.flag_touch = 'A'
         
         
     def createFoo(self):
         self.idx = 0 
         self.ofile = open(str(self.name_foo),"w")
         self.writer = csv.writer(self.ofile, delimiter=':')
-        self.writer.writerow(["numFrame","X","Y","VX","VY"])
+        self.writer.writerow(["numFrame","X","Y","VX","VY",'T/A'])#Alone or Touch
         
         
     def add_to_track(self,_plot):
@@ -239,7 +243,7 @@ class Track(object):
         self.nbplot += 1
         
     def save_history(self):
-        self.writer.writerow([self.idx , const.CONV_PX2CM*self.plot[0][0],const.CONV_PX2CM*self.plot[0][1],self.speed[0][0], self.speed[0][1] ] )
+        self.writer.writerow([self.idx , self.plot[0][0],self.plot[0][1],self.speed[0][0], self.speed[0][1],self.flag_touch ] )
         self.idx += 1
         
     def is_singular(self):
@@ -268,4 +272,10 @@ class Track(object):
     
     def get_latest_bb(self):
         return self.plot;
+    
+    def updateStatus(self):
+        if self.flag_cluster is True:
+            self.flag_touch = 'T'
+        else:
+            self.flag_touch = 'A'
     
