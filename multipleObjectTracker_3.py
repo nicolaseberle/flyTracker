@@ -116,11 +116,14 @@ class MultipleObjectTracker(object):
                 #we look for unassigned tracks around a matched track
                 for _t in self.tracks:
                     dist = np.linalg.norm(_t.plot[0][:2]-t.plot[0][:2])
-                    if dist < t.plot[0][7] and t.label!=_t.label and _t.has_match is False \
+                    ellipse = t.plot[0][4:9]
+                    
+                    if  t.label!=_t.label and _t.has_match is False \
                                     and self.indiceFrame>1 and t.is_singular() == False \
                                         and (t.plot[0][3] > 1.3*t.old_plot[0][3] or t.flag_cluster == True or _t.flag_cluster==True):        
-                        liste_track_no_assigned.append(_t)
-                        print('autour de ' + str(t.label) +  'track ' + str(_t.label) + ' non assigné')
+                        if util.testPtsInEllipse(ellipse,_t.plot) is True:    
+                            liste_track_no_assigned.append(_t)
+                            print('autour de ' + str(t.label) +  'track ' + str(_t.label) + ' non assigné')
                 #some tracks have been found
                 n = len(liste_track_no_assigned)
                 if n > 1:#>1 because we add at the beginning the matched track   
@@ -136,7 +139,6 @@ class MultipleObjectTracker(object):
                     
                     for j in range(n):
                         for i,_t in enumerate(liste_track_no_assigned):
-                            #print(np.shape(p),np.shape(_t.old_plot),np.shape(dists))
                             dists[i,j] = np.linalg.norm(p[j][:2]-_t.old_plot[0][:2])
                             print(i,j,dists[i,j])
                         
@@ -257,8 +259,8 @@ class Track(object):
         
     def compute_speed(self):
         if self.nbplot  != 1:
-            
-            self.speed = (self.plot - self.old_plot)*const.DIAMETER_ROUND_BOX_CM/(0.04*const.DIAMETER_ROUND_BOX_PIXEL)
+            dt = 1/const.FPS
+            self.speed = (self.plot - self.old_plot)/dt
             self.listSpeed = np.concatenate((self.listSpeed,self.speed))
         
     def get_length(self):

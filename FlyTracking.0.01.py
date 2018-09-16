@@ -95,12 +95,12 @@ def main(args):
     if (cap.isOpened()== False): 
         print("Error opening video stream or file")
     
-    for counter in range(4700):
+    for counter in range(30):
         ret, frame_full = cap.read()
         
         
     init_once = False
-    numFrame = 4700
+    numFrame = 30
     #init du tracker
     tracker = MultipleObjectTracker()
     if args['magic'] == "1":
