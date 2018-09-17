@@ -147,8 +147,8 @@ class MultipleObjectTracker(object):
                     
                     for idx, row in enumerate(assigned_rows):
                         
-                        if t.label == liste_track_no_assigned[row].label:
-                            np.delete(t.listPlot,-1)
+                        #if t.label == liste_track_no_assigned[row].label:
+                        #    np.delete(t.listPlot,-1)
                             
                         col = assigned_cols[idx]
                         p_ = np.copy(t.plot)    
@@ -202,8 +202,8 @@ class Track(object):
         self.num_misses = 0
         self.nbplot = 0
         self.label = numPiste
-        self.listPlot = np.empty((0,51), dtype='float32')
-        self.listSpeed = np.empty((0,51), dtype='float32')
+        #self.listPlot = np.empty((0,51), dtype='float32')
+        #self.listSpeed = np.empty((0,51), dtype='float32')
         self.plot = np.empty((0,1,51), dtype='float32')
         #self.old_plot = np.empty((0,1,51), dtype='float32')
         self.name_foo = const.DIR_WORKSPACE +  'fly_res_out_' + str(numPiste) +".csv"
@@ -227,7 +227,7 @@ class Track(object):
         
         
         self.plot = _plot
-        self.listPlot = np.concatenate((self.listPlot,self.plot))
+        #self.listPlot = np.concatenate((self.listPlot,self.plot))
         
         if(self.nbplot !=0):
             self.compute_speed()
@@ -265,7 +265,7 @@ class Track(object):
         if self.nbplot  != 1:
             dt = 1/const.FPS
             self.speed = (self.plot - self.old_plot)/dt
-            self.listSpeed = np.concatenate((self.listSpeed,self.speed))
+            #self.listSpeed = np.concatenate((self.listSpeed,self.speed))
         
     def get_length(self):
         return self.nbplot

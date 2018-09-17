@@ -262,26 +262,22 @@ def main(args):
             frame = cv2.circle(frame,(int(centroids[3]),int(centroids[4])), 2, (255,255,255), -1)
             
             #print(1,nb_element,area, area/nb_element)
-            if(area>10000):
-                (cx,cy),(MA,ma),angle = cv2.fitEllipse(cnt)
-                ellipse = cv2.fitEllipse(cnt)
-                frame = cv2.ellipse(frame,ellipse, (0,255,0), 1)
+            
+            if(M['m00']!=0):
+                cx = (M['m10']/M['m00'])
+                cy = (M['m01']/M['m00'])
+                MA = 2
+                ma = 2
+                angle = 0
             else:
-                if(M['m00']!=0):
-                    cx = (M['m10']/M['m00'])
-                    cy = (M['m01']/M['m00'])
-                    MA = 2
-                    ma = 2
-                    angle = 0
-                else:
-                    cx = ((box[0][0] + box[1][0] + box[2][0] + box[3][0])/4)
-                    cy = ((box[0][1] + box[1][1] + box[2][1] + box[3][1])/4)
-                    angle = 0
-                    MA = 2
-                    ma = 2
-                    angle = 0
-                    
-            angle = 0
+                cx = ((box[0][0] + box[1][0] + box[2][0] + box[3][0])/4)
+                cy = ((box[0][1] + box[1][1] + box[2][1] + box[3][1])/4)
+                angle = 0
+                MA = 2
+                ma = 2
+                angle = 0
+                
+            
             centroids_array = np.asarray(centroids)
             centroids_array.astype(float)
             centroids_array = np.reshape(centroids_array,(1,1,-1))  
