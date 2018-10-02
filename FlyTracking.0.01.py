@@ -3,17 +3,24 @@
 import cv2
 import numpy as np
 from multipleObjectTracker_3 import MultipleObjectTracker
+from filevideostream import FileVideoStream
 from genMosaic import GenMosaic
 import tracker_constant as const
 import argparse
-from matplotlib import pyplot as plt
-from skimage.filters import gaussian
+import time
 
 from tkinter import *
 from tkinter import filedialog
 
 import logging
 import sys
+
+def loadCameraParameters():
+    mtx = np.load('mtx_file.npy')
+    dist = np.load('dist_file.npy')
+    newcameramtx = np.load('newcameramtx_file.npy')
+    roi = np.load('roi_file.npy')
+    return mtx,dist,newcameramtx,roi 
 
 root = logging.getLogger()
 root.setLevel(logging.DEBUG)
@@ -23,58 +30,8 @@ ch = logging.StreamHandler(sys.stdout)
 #formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 #ch.setFormatter(formatter)
 #root.addHandler(ch)
-#def findIsolatedLocalMinima(greyScaleImage):
-#    squareDiameterLog3 = 3 #27x27
-#    greyScaleImage = gaussian(greyScaleImage,2)
-#    total = greyScaleImage
-#    for axis in range(2):
-#        d = 1
-#        for i in range(squareDiameterLog3):
-#            total = np.minimum(total, np.roll(total, d, axis))
-#            total = np.minimum(total, np.roll(total, -d, axis))
-#            d *= 3
-#
-#    minima = total == greyScaleImage
-#    
-#    h,w = greyScaleImage.shape
-#
-#    coord_minima = []
-#    for j in range(h):
-#        for i in range(w):
-#            
-#            if minima[j][i]:
-#                coord_minima.append((i, j))
-#    return coord_minima
-
-#def findNbCentroids(ext_img):
-#    element = cv2.getStructuringElement(cv2.MORPH_CROSS,(3,3))
-#    done = False
-#    size = np.size(ext_img)
-#    skel = np.zeros(ext_img.shape,np.uint8)
-#    
-#    iteration = 0
-#    iteration_lim = 100
-#    while( not done or iteration<iteration_lim):
-#        eroded = cv2.erode(ext_img,element)
-#        temp = cv2.dilate(eroded,element)
-#        temp = cv2.subtract(ext_img,temp)
-#        skel = cv2.bitwise_or(skel,temp)
-#        ext_img = eroded.copy()
-#        #cv2.imshow('erode',ext_img)
-#        #cv2.waitKey(500)
-#        zeros = size - cv2.countNonZero(ext_img)
-#        if zeros==size:
-#            done = True
-#        iteration = iteration + 1
-#        if iteration > iteration_lim:
-#            break
-#    nb_element = cv2.sumElems(skel)
-#    nb_element = float(nb_element[0]) / 255.0
-#    
-#    return nb_element
 
 def main(args):
-    
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
     font = cv2.FONT_HERSHEY_SIMPLEX
     
@@ -94,23 +51,26 @@ def main(args):
 #                       criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 50, 0.1))
     
     ############################################################################
-    cap = cv2.VideoCapture(args['input_video'])
-    marge_x = 1
-    marge_y = 20
+    #cap = cv2.VideoCapture(args['input_video'])
+    fvs = FileVideoStream(args['input_video'],1).start()
+    time.sleep(1.0)
     seuil_bas=70
     ############################################################################    
+
     
+    mtx,dist,newcameramtx,roi = loadCameraParameters()
     
-    # Check if camera opened successfully
-    if (cap.isOpened()== False): 
-        print("Error opening video stream or file")
-    
-    for counter in range(12500):
-        ret, frame_full = cap.read()
+
         
+    for counter in range(50):
+        fvs.more()
+        frame_full = fvs.read()
         
+    h,w = frame_full.shape[:2]
+    
+    
     init_once = False
-    numFrame = 12500
+    numFrame = 50
     #init du tracker
     tracker = MultipleObjectTracker()
     if args['magic'] == "1":
@@ -143,23 +103,17 @@ def main(args):
     
     #use blob detector to establish the extraction threshold
     #detector = cv2.SimpleBlobDetector_create(params)
-    while(cap.isOpened()):
+
+    while fvs.more():
         print('***************************************************************')
         # Take each frame
-        ret, frame_full = cap.read()
-
-        if ret == False:
-            continue
-
-        height, width, _ = frame_full.shape
-        frame = frame_full[marge_y:height-marge_y, marge_x:width-marge_x]
+        frame = fvs.read()
         
         # Convert BGR to gray
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        #if args['no_preview'] == 1:
-            #cv2.imshow('frameRGB',frame)
-        # initialization of mask and store frame    
-        # Set up the detector with default parameters.
+        
+        
+        
         
          
         # Detect blobs.
@@ -170,8 +124,6 @@ def main(args):
         #
         # Show keypoints
         
-        #if args['no_preview'] == 1:
-        #    cv2.imshow('frameRGB',frame2)
         if not init_once:
             
             mask = np.zeros_like(frame)
@@ -198,14 +150,14 @@ def main(args):
         
         
         
-        if args['no_preview'] == 1:
-            cv2.imshow('maskMedian',thresh2_median)
+        #if args['no_preview'] == 1:
+            #cv2.imshow('maskMedian',thresh2_median)
             #cv2.imshow('unknow',unknown)
             
         im2, contours, hierarchy = cv2.findContours(thresh2_median,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
         
         pos_t = np.empty((0,1,51), dtype='float32')
-        img_2 = np.copy(frame)
+        
         #For each blob/contour 
         for cnt in contours:
             
@@ -226,25 +178,17 @@ def main(args):
             
             if len(cnt[:][:])>=5:
                 # Bounding ellipse
-                #img__ = frame[y:y+h, x:x+w].copy()
+                
                 
                 #easy function
                 ellipse = cv2.fitEllipse(cnt)
                 #print(ellipse)
                 #add it
-                cv2.ellipse(img_2, ellipse, (0,255,0), 2,cv2.LINE_AA)
-                cv2.imshow("ellispe",img_2)
+                #cv2.ellipse(img_2, ellipse, (0,255,0), 2,cv2.LINE_AA)
+                #cv2.imshow("ellispe",img_2)
             else:
                 ellipse = [(-1,-1),(-1,-1),-1]
             
-            
-            #coord_minima = findIsolatedLocalMinima(frame[y:y+h, x:x+w,2])
-            #nb_element = len(coord_minima)
-            
-            #for i_coord_minima in coord_minima:
-                #cv2.circle(img_2, (i_coord_minima[0]+x,i_coord_minima[1]+y), 2, (0,255,0), -1) #ignore near the current minloc
-            #if args['no_preview'] == 1:
-                #cv2.imshow('minLocaux',img_2)
             
             mask_2 = np.zeros_like(thresh2_median)
             cv2.fillPoly(mask_2, np.int_([cnt]), 1)
@@ -277,16 +221,12 @@ def main(args):
             if(M['m00']!=0):
                 cx = (M['m10']/M['m00'])
                 cy = (M['m01']/M['m00'])
-                MA = 2
-                ma = 2
                 angle = 0
             else:
                 cx = ((box[0][0] + box[1][0] + box[2][0] + box[3][0])/4)
                 cy = ((box[0][1] + box[1][1] + box[2][1] + box[3][1])/4)
                 angle = 0
-                MA = 2
-                ma = 2
-                angle = 0
+                
                 
             
             centroids_array = np.asarray(centroids)
@@ -327,8 +267,10 @@ def main(args):
         
         numFrame = numFrame + 1
         
+
+            
         if args['no_preview'] == 1:
-            k = cv2.waitKey(25)
+            k = cv2.waitKey(1)
             if k == 27:
                 cv2.destroyAllWindows()
                 break
@@ -352,7 +294,7 @@ def main(args):
             else:
                 print(k) # else print its value
         
-    cap.release()
+    fvs.stop()
 
 
 if __name__ == '__main__':

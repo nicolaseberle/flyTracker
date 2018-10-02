@@ -27,14 +27,17 @@ class MultipleObjectTracker(object):
                     continue
                 track2 = self.tracks[j]
                 if util.check_tracks_equal(track1, track2):
-                    print('duplicate found!')
+                    if const.VERBOSE_FULL is True: 
+                        print('duplicate found!')
                     # if so, delete shortest track
                     if track1.get_length() > track2.get_length():
                         track2.delete_me = True
-                        print("delete track : " + str(track2.label))
+                        if const.VERBOSE_FULL is True: 
+                            print("delete track : " + str(track2.label))
                     else:
                         track1.delete_me = True
-                        print("delete track : " + str(track1.label))
+                        if const.VERBOSE_FULL is True: 
+                            print("delete track : " + str(track1.label))
                         
         self.tracks = [t for t in self.tracks if t.delete_me is False]
 
@@ -122,7 +125,8 @@ class MultipleObjectTracker(object):
                                         and (t.plot[0][3] > 1.3*t.old_plot[0][3] or t.flag_cluster == True or _t.flag_cluster==True):        
                         if util.testPtsInEllipse(ellipse,_t.plot,_t.speed,const.FPS) is True:    
                             liste_track_no_assigned.append(_t)
-                            print('autour de ' + str(t.label) +  'track ' + str(_t.label) + ' non assigné')
+                            if const.VERBOSE_FULL is True: 
+                                print('autour de ' + str(t.label) +  'track ' + str(_t.label) + ' non assigné')
                 #some tracks have been found
                 n = len(liste_track_no_assigned)
                 if n > 1:#>1 because we add at the beginning the matched track   
@@ -140,10 +144,12 @@ class MultipleObjectTracker(object):
                         for i,_t in enumerate(liste_track_no_assigned):
                             
                             dt = 1/const.FPS
+                            #attention old_plot n'existe pas forcément à la deuxième itération
                             estime_current_plot = _t.old_plot[0][:2]+_t.speed[0][:2]*dt
                             dists[i,j] = np.linalg.norm(p[j][:2]-estime_current_plot)
                             #dists[i,j] = np.linalg.norm(p[j][:2]-_t.old_plot[0][:2])
-                            print(i,j,dists[i,j])
+                            if const.VERBOSE_FULL is True: 
+                                print(i,j,dists[i,j])
                         
                     assigned_rows, assigned_cols = linear_sum_assignment(dists)
                     
@@ -154,8 +160,8 @@ class MultipleObjectTracker(object):
                         p_[0][:2] = p[col][:2]
                         p_[0][3] = p[col][2]
                         
-                        #if const.VERBOSE_FULL is True: 
-                        print(row,col,' track ' + str(liste_track_no_assigned[row].label) + ' ' + str(liste_track_no_assigned[row].old_plot[0][0]) + ','+ str(liste_track_no_assigned[row].old_plot[0][1]) + ' -> ' + str(p_[0][0]) + ',' + str(p_[0][1]))
+                        if const.VERBOSE_FULL is True: 
+                            print(row,col,' track ' + str(liste_track_no_assigned[row].label) + ' ' + str(liste_track_no_assigned[row].old_plot[0][0]) + ','+ str(liste_track_no_assigned[row].old_plot[0][1]) + ' -> ' + str(p_[0][0]) + ',' + str(p_[0][1]))
                         plots.append(p_)
                         liste_track_no_assigned[row].has_match = True
                         
