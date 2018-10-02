@@ -227,7 +227,6 @@ def testPtsInEllipse(e,pts,v,fps):
     dp = v*dt
     dx, dy = dp[0][:2]/2
     norm_dp = math.sqrt(dx * dx + dy * dy)
-    print(norm_dp)
     xc    = e[0] + dx/2
     yc    = e[1] + dy/2
     a     = e[2] / 2  + np.max((2, int(norm_dp)))

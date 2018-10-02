@@ -105,8 +105,9 @@ class MultipleObjectTracker(object):
         for _plot in plots:
             
             if _plot.has_match is False and _plot.plot[0][3]>20 and self.indiceFrame < 100 :
-                print("create new tracks from unassigned plot ")
-
+                if const.VERBOSE_LIGHT is True:
+                    print("create new tracks from unassigned plot ")
+                    
                 new_track = Track(self.indiceTrack)
                 new_track.add_to_track(_plot.plot)
                 self.tracks.append(new_track)

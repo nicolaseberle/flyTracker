@@ -9,18 +9,10 @@ import tracker_constant as const
 import argparse
 import time
 
-from tkinter import *
 from tkinter import filedialog
 
 import logging
 import sys
-
-def loadCameraParameters():
-    mtx = np.load('mtx_file.npy')
-    dist = np.load('dist_file.npy')
-    newcameramtx = np.load('newcameramtx_file.npy')
-    roi = np.load('roi_file.npy')
-    return mtx,dist,newcameramtx,roi 
 
 root = logging.getLogger()
 root.setLevel(logging.DEBUG)
@@ -58,7 +50,7 @@ def main(args):
     ############################################################################    
 
     
-    mtx,dist,newcameramtx,roi = loadCameraParameters()
+    
     
 
         
