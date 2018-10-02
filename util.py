@@ -220,13 +220,18 @@ def bb_has_width_height(bb):
 def bb_as_ints(bb):
     return [int(bb[0]), int(bb[1]), int(bb[2]), int(bb[3])]
 
-def testPtsInEllipse(e,pts):
-    marge = 2
+def testPtsInEllipse(e,pts,v,fps):
     
-    xc    = e[0]
-    yc    = e[1]
-    a     = e[2] / 2 + marge
-    b     = e[3] / 2 + marge
+    dt = 1/fps
+  
+    dp = v*dt
+    dx, dy = dp[0][:2]/2
+    norm_dp = math.sqrt(dx * dx + dy * dy)
+    print(norm_dp)
+    xc    = e[0] + dx/2
+    yc    = e[1] + dy/2
+    a     = e[2] / 2  + np.max((2, int(norm_dp)))
+    b     = e[3] / 2  + np.max((2, int(norm_dp)))#we take care the motion to increase the ROI of research
     angle = e[4]*np.pi/180.
     
     res = sqr((float(pts[0][0])-xc) * np.cos(angle) + (float(pts[0][1])-yc) * np.sin(angle)) / sqr(a) + \

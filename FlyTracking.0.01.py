@@ -11,63 +11,74 @@ from skimage.filters import gaussian
 
 from tkinter import *
 from tkinter import filedialog
+
+import logging
+import sys
+
+root = logging.getLogger()
+root.setLevel(logging.DEBUG)
  
-def findIsolatedLocalMinima(greyScaleImage):
-    squareDiameterLog3 = 3 #27x27
-    greyScaleImage = gaussian(greyScaleImage,2)
-    total = greyScaleImage
-    for axis in range(2):
-        d = 1
-        for i in range(squareDiameterLog3):
-            total = np.minimum(total, np.roll(total, d, axis))
-            total = np.minimum(total, np.roll(total, -d, axis))
-            d *= 3
+ch = logging.StreamHandler(sys.stdout)
+#ch.setLevel(logging.DEBUG)
+#formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+#ch.setFormatter(formatter)
+#root.addHandler(ch)
+#def findIsolatedLocalMinima(greyScaleImage):
+#    squareDiameterLog3 = 3 #27x27
+#    greyScaleImage = gaussian(greyScaleImage,2)
+#    total = greyScaleImage
+#    for axis in range(2):
+#        d = 1
+#        for i in range(squareDiameterLog3):
+#            total = np.minimum(total, np.roll(total, d, axis))
+#            total = np.minimum(total, np.roll(total, -d, axis))
+#            d *= 3
+#
+#    minima = total == greyScaleImage
+#    
+#    h,w = greyScaleImage.shape
+#
+#    coord_minima = []
+#    for j in range(h):
+#        for i in range(w):
+#            
+#            if minima[j][i]:
+#                coord_minima.append((i, j))
+#    return coord_minima
 
-    minima = total == greyScaleImage
-    
-    h,w = greyScaleImage.shape
-
-    coord_minima = []
-    for j in range(h):
-        for i in range(w):
-            
-            if minima[j][i]:
-                coord_minima.append((i, j))
-    return coord_minima
-
-def findNbCentroids(ext_img):
-    element = cv2.getStructuringElement(cv2.MORPH_CROSS,(3,3))
-    done = False
-    size = np.size(ext_img)
-    skel = np.zeros(ext_img.shape,np.uint8)
-    
-    iteration = 0
-    iteration_lim = 100
-    while( not done or iteration<iteration_lim):
-        eroded = cv2.erode(ext_img,element)
-        temp = cv2.dilate(eroded,element)
-        temp = cv2.subtract(ext_img,temp)
-        skel = cv2.bitwise_or(skel,temp)
-        ext_img = eroded.copy()
-        #cv2.imshow('erode',ext_img)
-        #cv2.waitKey(500)
-        zeros = size - cv2.countNonZero(ext_img)
-        if zeros==size:
-            done = True
-        iteration = iteration + 1
-        if iteration > iteration_lim:
-            break
-    nb_element = cv2.sumElems(skel)
-    nb_element = float(nb_element[0]) / 255.0
-    
-    return nb_element
+#def findNbCentroids(ext_img):
+#    element = cv2.getStructuringElement(cv2.MORPH_CROSS,(3,3))
+#    done = False
+#    size = np.size(ext_img)
+#    skel = np.zeros(ext_img.shape,np.uint8)
+#    
+#    iteration = 0
+#    iteration_lim = 100
+#    while( not done or iteration<iteration_lim):
+#        eroded = cv2.erode(ext_img,element)
+#        temp = cv2.dilate(eroded,element)
+#        temp = cv2.subtract(ext_img,temp)
+#        skel = cv2.bitwise_or(skel,temp)
+#        ext_img = eroded.copy()
+#        #cv2.imshow('erode',ext_img)
+#        #cv2.waitKey(500)
+#        zeros = size - cv2.countNonZero(ext_img)
+#        if zeros==size:
+#            done = True
+#        iteration = iteration + 1
+#        if iteration > iteration_lim:
+#            break
+#    nb_element = cv2.sumElems(skel)
+#    nb_element = float(nb_element[0]) / 255.0
+#    
+#    return nb_element
 
 def main(args):
     
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
     font = cv2.FONT_HERSHEY_SIMPLEX
     
-    flag_hidden_tracks = False
+    flag_hide_tracks = False
     
     alpha_1 = 0.5 # transparency of the mask to see the tracks
     alpha_2 = 0 # transparency of the mask to see the tracks
@@ -78,11 +89,10 @@ def main(args):
     kernel = cv2.getStructuringElement(cv2.MORPH_CROSS,(3,3))
     color = np.random.randint(0,255,(255,3))
     
-    lk_params = dict( winSize  = (20,20),
-                       maxLevel = 1,
-                       criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 50, 0.1))
+#    lk_params = dict( winSize  = (20,20),
+#                       maxLevel = 1,
+#                       criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 50, 0.1))
     
-    mean_area = 50
     ############################################################################
     cap = cv2.VideoCapture(args['input_video'])
     marge_x = 1
@@ -95,12 +105,12 @@ def main(args):
     if (cap.isOpened()== False): 
         print("Error opening video stream or file")
     
-    for counter in range(30):
+    for counter in range(12500):
         ret, frame_full = cap.read()
         
         
     init_once = False
-    numFrame = 30
+    numFrame = 12500
     #init du tracker
     tracker = MultipleObjectTracker()
     if args['magic'] == "1":
@@ -131,6 +141,7 @@ def main(args):
     params.filterByInertia = False
     params.minInertiaRatio = 0.01
     
+    #use blob detector to establish the extraction threshold
     #detector = cv2.SimpleBlobDetector_create(params)
     while(cap.isOpened()):
         print('***************************************************************')
@@ -222,7 +233,7 @@ def main(args):
                 #print(ellipse)
                 #add it
                 cv2.ellipse(img_2, ellipse, (0,255,0), 2,cv2.LINE_AA)
-                #cv2.imshow("ellispe",img_2)
+                cv2.imshow("ellispe",img_2)
             else:
                 ellipse = [(-1,-1),(-1,-1),-1]
             
@@ -297,12 +308,15 @@ def main(args):
                 print("PISTE "  + str(i) + " label : " + str(track.label)  + " X: " + str(track.plot[0][0]) + " Y: " + str(track.plot[0][1]) + " Theta: " + str(track.plot[0][2]) + " S: " + str(track.plot[0][3]))
                 #mask = cv2.circle(mask,(track.plot[0][0],track.plot[0][1]), 2, color[track.label].tolist(), -1)
                 mask = cv2.line(mask, (int(track.old_plot[0][0]),int(track.old_plot[0][1])),(int(track.plot[0][0]),int(track.plot[0][1])), color[track.label].tolist(), 1)
+                #mask = cv2.line(mask, (int(track.plot[0][0]),int(track.plot[0][1])),(int(track.plot[0][0]+track.speed[0][0]*(1/30)),int(track.plot[0][1]+track.speed[0][1]*(1/30))), (255 ,0 ,0), 1)
+                #mask = cv2.circle(mask,(int(track.old_plot[0][0]),int(track.old_plot[0][1])), 2, (255,0,255), -1)
+                #mask = cv2.circle(mask,(int(track.plot[0][0]),int(track.plot[0][1])), 2, (0,255,0), -1)
                 cv2.putText(frame,str(track.label),(int(track.plot[0][0]),int(track.plot[0][1])), font, 0.4,(255,0,0),1,cv2.LINE_AA)
             #if track.has_match is False:
                 #cv2.putText(frame,str(track.label),(track.plot[0][0],track.plot[0][1]), font, 0.4,(48, 214, 232),1,cv2.LINE_AA)
         cv2.putText(frame,'frame ' + str(numFrame),(10,20), font, 0.4,(255,0,0),1,cv2.LINE_AA)
         
-        if flag_hidden_tracks==True:
+        if flag_hide_tracks==True:
             cv2.putText(frame,"fade out activate",(10,40), font, 0.4,(255,0,0),1,cv2.LINE_AA)
             
         img = cv2.addWeighted(mask, 1, frame, 1, 0)
@@ -319,15 +333,15 @@ def main(args):
                 cv2.destroyAllWindows()
                 break
             elif k==ord('a'):
-                if flag_hidden_tracks == False:
+                if flag_hide_tracks == False:
                     alpha_1 = 0.495
                     alpha_2 = -1
-                    flag_hidden_tracks = True
+                    flag_hide_tracks = True
                     continue
                 else:
                     alpha_1 = 0.5
                     alpha_2 = 0
-                    flag_hidden_tracks = False
+                    flag_hide_tracks = False
             elif k==-1:  # normally -1 returned,so don't print it
                 continue
             elif k==ord('p'):
@@ -342,7 +356,7 @@ def main(args):
 
 
 if __name__ == '__main__':
-    __version__ = 0.2
+    __version__ = 0.3
     print("FlyTracker version  :" + str(__version__))
     # construct the argument parse and parse the arguments
     ap = argparse.ArgumentParser()

@@ -10,7 +10,7 @@ Created on Wed Dec 13 10:37:21 2017
 MAX_FLIES_BY_CLUSTER = 5
 MAX_NUM_MISSES_TRACK = 200
 #NOT TOO LOW, IN CASE OF JUMP, THE ONLY TO REACH IT BACK
-MAX_PIXELS_DIST_TRACK = 20  # TODO: use a ratio of bboxes instead (smaller bb means further away means shorter dist)
+MAX_PIXELS_DIST_TRACK = 40  # TODO: use a ratio of bboxes instead (smaller bb means further away means shorter dist)
 MAX_PIXELS_DIST_TRACK_START = int(MAX_PIXELS_DIST_TRACK/1.5)  # TODO: use a ratio of bboxes instead (smaller bb means further away means shorter dist)
 MIN_IOU_TRACK = 0.5
 MIN_IOU_TRACK_START = 0.5
