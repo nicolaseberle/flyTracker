@@ -219,3 +219,22 @@ def bb_has_width_height(bb):
 
 def bb_as_ints(bb):
     return [int(bb[0]), int(bb[1]), int(bb[2]), int(bb[3])]
+
+def testPtsInEllipse(e,pts):
+    marge = 2
+    
+    xc    = e[0]
+    yc    = e[1]
+    a     = e[2] / 2 + marge
+    b     = e[3] / 2 + marge
+    angle = e[4]*np.pi/180.
+    
+    res = sqr((float(pts[0][0])-xc) * np.cos(angle) + (float(pts[0][1])-yc) * np.sin(angle)) / sqr(a) + \
+            sqr((float(pts[0][0])-xc) * np.sin(angle) - (float(pts[0][1])-yc) * np.cos(angle)) / sqr(b)
+    if res<=1:
+        return True
+    else:
+        return False
+
+def sqr(x):
+    return x * x;

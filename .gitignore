@@ -1,3 +1,6 @@
 __pycache__/
 dataset/
 output/
+venv/
+idea/
+.idea/
