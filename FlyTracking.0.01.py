@@ -214,8 +214,6 @@ def main(args):
             cy = ((box[0][1] + box[1][1] + box[2][1] + box[3][1])/4)
             angle = 0
                 
-                
-            
             centroids_array = np.asarray(centroids)
             centroids_array.astype(float)
             centroids_array = np.reshape(centroids_array,(1,1,-1))  
