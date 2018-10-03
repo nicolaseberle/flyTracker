@@ -96,10 +96,7 @@ def main(args):
     ############################################################################
     fvs = FileVideoStream(args['input_video'],1).start()
     time.sleep(1.0)
-    seuil_bas=70
     ############################################################################    
-
-    
         
     for counter in range(50):
         fvs.more()
@@ -108,7 +105,7 @@ def main(args):
     h,w = frame_full.shape[:2]
     
     #Threshold calibration 
-    seuil_bas = findThresholdMin(frame_full)
+    minThreshold = findThresholdMin(frame_full)
     
     #init du tracker
     tracker = MultipleObjectTracker()
@@ -141,7 +138,7 @@ def main(args):
         #if args['no_preview'] == 1:
         #    cv2.imshow('frameRGB',frame2)
         
-        ret,thresh2 = cv2.threshold(gray,seuil_bas,255,cv2.THRESH_BINARY_INV)
+        ret,thresh2 = cv2.threshold(gray,minThreshold,255,cv2.THRESH_BINARY_INV)
         thresh2_dilate = cv2.dilate(thresh2,kernel,iterations = 1)
         thresh2_median  = cv2.medianBlur(thresh2_dilate,3)
     
