@@ -27,6 +27,8 @@ else:
 class FileVideoStream:
     def __init__(self, path, flag_transform=None, queueSize=128):
         self.stream = cv2.VideoCapture(path)
+        self.frame_width = int(self.stream.get(cv2.CAP_PROP_FRAME_WIDTH))
+        self.frame_height = int(self.stream.get(cv2.CAP_PROP_FRAME_HEIGHT))
         self.stopped = False
         self.flag_transform = flag_transform
         #initialize the camera mapping
@@ -35,7 +37,7 @@ class FileVideoStream:
             self.dist = np.load('dist_file.npy')
             self.newcameramtx = np.load('newcameramtx_file.npy')
             self.roi = np.load('roi_file.npy')
-            self.mapx,self.mapy = cv2.initUndistortRectifyMap(self.mtx,self.dist,None,self.newcameramtx,(1280,1080),5)
+            self.mapx,self.mapy = cv2.initUndistortRectifyMap(self.mtx,self.dist,None,self.newcameramtx,(self.frame_width,self.frame_height),5)
             self.x_roi,self.y_roi,self.w_roi,self.h_roi = self.roi
 		# initialize the queue used to store frames read from
 		# the video file
@@ -58,7 +60,7 @@ class FileVideoStream:
             if not self.Q.full():
 				# read the next frame from the file
                 (grabbed, frame) = self.stream.read()
-
+                frame_pos_msec = self.stream.get(cv2.CAP_PROP_POS_MSEC)
 				# if the `grabbed` boolean is `False`, then we have
 				# reached the end of the video file
                 if not grabbed:
@@ -80,14 +82,10 @@ class FileVideoStream:
                 if self.flag_transform:
 					#frame = self.transform(frame)
                     frame_f1 = cv2.remap(frame,self.mapx,self.mapy,cv2.INTER_LINEAR)
-        
-                    h_, w_ = frame_f1.shape[:2]
-                    frame_full = frame_f1[self.y_roi:self.y_roi+self.h_roi, self.x_roi:self.x_roi+self.w_roi]
-                    frame = frame_full
-        
+                    frame = frame_f1[self.y_roi:self.y_roi+self.h_roi, self.x_roi:self.x_roi+self.w_roi]
 
 				# add the frame to the queue
-                self.Q.put(frame)
+                self.Q.put([frame_pos_msec,frame])
             else:
                 time.sleep(0.1)  # Rest for 10ms, we have a full queue  
 

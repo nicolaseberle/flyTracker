@@ -100,7 +100,7 @@ def main(args):
         
     for counter in range(50):
         fvs.more()
-        frame_full = fvs.read()
+        frame_pos,frame_full = fvs.read()
     numFrame = 50    
     h,w = frame_full.shape[:2]
     
@@ -116,7 +116,7 @@ def main(args):
     while fvs.more():
         print('***************************************************************')
         # Take each frame
-        frame = fvs.read()
+        frame_pos,frame = fvs.read()
         
         # Convert BGR to gray
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -142,8 +142,8 @@ def main(args):
         thresh2_dilate = cv2.dilate(thresh2,kernel,iterations = 1)
         thresh2_median  = cv2.medianBlur(thresh2_dilate,3)
     
-        if args['no_preview'] == 1:
-            cv2.imshow('maskMedian',thresh2_median)
+        #if args['no_preview'] == 1:
+        #    cv2.imshow('maskMedian',thresh2_median)
             #cv2.imshow('unknow',unknown)
             
         im2, contours, hierarchy = cv2.findContours(thresh2_median,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
@@ -185,6 +185,8 @@ def main(args):
             mask_2 = np.zeros_like(thresh2_median)
             cv2.fillPoly(mask_2, np.int_([cnt]), 1)
             
+            #as we don't know if it's a cluster or not 
+            #we compute different hypothesis 
             pixelpointsCV2 = cv2.findNonZero(mask_2[y:y+h, x:x+w])
             Z = np.float32(pixelpointsCV2 )
             number_points = len(Z)
@@ -205,19 +207,12 @@ def main(args):
                         centroids.append(np.sum(label == num))
             
             
-            frame = cv2.circle(frame,(int(centroids[0]),int(centroids[1])), 2, (255,255,255), -1)
-            frame = cv2.circle(frame,(int(centroids[3]),int(centroids[4])), 2, (255,255,255), -1)
-            
-            #print(1,nb_element,area, area/nb_element)
-            
-            if(M['m00']!=0):
-                cx = (M['m10']/M['m00'])
-                cy = (M['m01']/M['m00'])
-                angle = 0
-            else:
-                cx = ((box[0][0] + box[1][0] + box[2][0] + box[3][0])/4)
-                cy = ((box[0][1] + box[1][1] + box[2][1] + box[3][1])/4)
-                angle = 0
+            #frame = cv2.circle(frame,(int(centroids[0]),int(centroids[1])), 2, (255,255,255), -1)
+            #frame = cv2.circle(frame,(int(centroids[3]),int(centroids[4])), 2, (255,255,255), -1)
+            frame  = cv2.rectangle(frame,(box[0][0],box[0][1]),(box[2][0],box[2][1]),(0,255,0),1)
+            cx = ((box[0][0] + box[1][0] + box[2][0] + box[3][0])/4)
+            cy = ((box[0][1] + box[1][1] + box[2][1] + box[3][1])/4)
+            angle = 0
                 
                 
             
@@ -234,18 +229,13 @@ def main(args):
         #update of the tracker with new plots
         tracker.update_tracks(pos_t)
         
-        print("num frame : " + str(numFrame))
+        print("time: ",str(frame_pos), " num frame : " + str(numFrame))
         for i, track in enumerate(tracker.tracks):
             if track.has_match is True:
                 print("PISTE "  + str(i) + " label : " + str(track.label)  + " X: " + str(track.plot[0][0]) + " Y: " + str(track.plot[0][1]) + " Theta: " + str(track.plot[0][2]) + " S: " + str(track.plot[0][3]))
-                #mask = cv2.circle(mask,(track.plot[0][0],track.plot[0][1]), 2, color[track.label].tolist(), -1)
-                mask = cv2.line(mask, (int(track.old_plot[0][0]),int(track.old_plot[0][1])),(int(track.plot[0][0]),int(track.plot[0][1])), color[track.label].tolist(), 1)
-                #mask = cv2.line(mask, (int(track.plot[0][0]),int(track.plot[0][1])),(int(track.plot[0][0]+track.speed[0][0]*(1/30)),int(track.plot[0][1]+track.speed[0][1]*(1/30))), (255 ,0 ,0), 1)
-                #mask = cv2.circle(mask,(int(track.old_plot[0][0]),int(track.old_plot[0][1])), 2, (255,0,255), -1)
-                #mask = cv2.circle(mask,(int(track.plot[0][0]),int(track.plot[0][1])), 2, (0,255,0), -1)
+
+                mask = cv2.line(mask, (int(track.old_plot[0][0]),int(track.old_plot[0][1])),(int(track.plot[0][0]),int(track.plot[0][1])), color[track.label].tolist(), 1)                
                 cv2.putText(frame,str(track.label),(int(track.plot[0][0]),int(track.plot[0][1])), font, 0.4,(255,0,0),1,cv2.LINE_AA)
-            #if track.has_match is False:
-                #cv2.putText(frame,str(track.label),(track.plot[0][0],track.plot[0][1]), font, 0.4,(48, 214, 232),1,cv2.LINE_AA)
         cv2.putText(frame,'frame ' + str(numFrame),(10,20), font, 0.4,(255,0,0),1,cv2.LINE_AA)
         
         if flag_hide_tracks==True:
@@ -258,7 +248,6 @@ def main(args):
             cv2.imshow('res',img)
         
         numFrame = numFrame + 1
-        
 
         #keyboard control
         if args['no_preview'] == 1:
