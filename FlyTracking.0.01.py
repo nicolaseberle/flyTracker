@@ -14,60 +14,8 @@ from tkinter import filedialog
 import logging
 import sys
 
-root = logging.getLogger()
-root.setLevel(logging.DEBUG)
- 
-ch = logging.StreamHandler(sys.stdout)
-#ch.setLevel(logging.DEBUG)
-#formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-#ch.setFormatter(formatter)
-#root.addHandler(ch)
 
-def main(args):
-    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
-    font = cv2.FONT_HERSHEY_SIMPLEX
-    
-    flag_hide_tracks = False
-    
-    alpha_1 = 0.5 # transparency of the mask to see the tracks
-    alpha_2 = 0 # transparency of the mask to see the tracks
-    #X vers le bas, Y vers la droite
-    
-    #kernel = np.ones((3,3),np.uint8)
-    #kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(3,3))
-    kernel = cv2.getStructuringElement(cv2.MORPH_CROSS,(3,3))
-    color = np.random.randint(0,255,(255,3))
-    
-#    lk_params = dict( winSize  = (20,20),
-#                       maxLevel = 1,
-#                       criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 50, 0.1))
-    
-    ############################################################################
-    #cap = cv2.VideoCapture(args['input_video'])
-    fvs = FileVideoStream(args['input_video'],1).start()
-    time.sleep(1.0)
-    seuil_bas=70
-    ############################################################################    
-
-    
-    
-    
-
-        
-    for counter in range(50):
-        fvs.more()
-        frame_full = fvs.read()
-        
-    h,w = frame_full.shape[:2]
-    
-    
-    init_once = False
-    numFrame = 50
-    #init du tracker
-    tracker = MultipleObjectTracker()
-    if args['magic'] == "1":
-        mosaic = GenMosaic()
-    
+def findThresholdMin(frame):
     # Setup SimpleBlobDetector parameters.
     params = cv2.SimpleBlobDetector_Params()
      
@@ -78,7 +26,7 @@ def main(args):
     # Filter by Area.
     params.filterByArea = True
     params.minArea = 10
-    #params.maxArea = 80
+    params.maxArea = 100
     params.minDistBetweenBlobs = 5
      
     # Filter by Circularity
@@ -94,8 +42,80 @@ def main(args):
     params.minInertiaRatio = 0.01
     
     #use blob detector to establish the extraction threshold
-    #detector = cv2.SimpleBlobDetector_create(params)
+    detector = cv2.SimpleBlobDetector_create(params)
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    # Detect blobs.
+    ex_mat = []
+    keypoints = detector.detect(gray)
+    for kpoint in keypoints:
+        x = int(kpoint.pt[0])
+        y = int(kpoint.pt[1])
+        ex_mat.append(np.reshape(gray[y-10:y+10,x-10:x+10],(1,400)))
+    
+    print("blob statistics:",np.median(ex_mat),np.mean(ex_mat),np.percentile(ex_mat,20),np.std(ex_mat))
+    new_threshold = np.median(ex_mat)-np.std(ex_mat)
+    print("new_threshold : ",new_threshold)
+    
+    return new_threshold
+    #gray[keypoints[0], x:x+w]
+    
+    # Draw detected blobs as red circles.
+    #frame2= np.copy(frame)
+    #cv2.drawKeypoints(gray,keypoints,frame2,color=(0,255,0), flags=0)
+    
 
+root = logging.getLogger()
+root.setLevel(logging.DEBUG)
+ 
+ch = logging.StreamHandler(sys.stdout)
+#ch.setLevel(logging.DEBUG)
+#formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+#ch.setFormatter(formatter)
+#root.addHandler(ch)
+
+def main(args):
+    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    
+    flag_hide_tracks = False
+    init_once = False
+    
+    alpha_1 = 0.5 # transparency of the mask to see the tracks
+    alpha_2 = 0 # transparency of the mask to see the tracks
+    #X vers le bas, Y vers la droite
+    
+    #kernel = np.ones((3,3),np.uint8)
+    #kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(3,3))
+    kernel = cv2.getStructuringElement(cv2.MORPH_CROSS,(3,3))
+    color = np.random.randint(0,255,(255,3))
+    
+#    lk_params = dict( winSize  = (20,20),
+#                       maxLevel = 1,
+#                       criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 50, 0.1))
+    
+    ############################################################################
+    fvs = FileVideoStream(args['input_video'],1).start()
+    time.sleep(1.0)
+    seuil_bas=70
+    ############################################################################    
+
+    
+        
+    for counter in range(50):
+        fvs.more()
+        frame_full = fvs.read()
+    numFrame = 50    
+    h,w = frame_full.shape[:2]
+    
+    #Threshold calibration 
+    seuil_bas = findThresholdMin(frame_full)
+    
+    #init du tracker
+    tracker = MultipleObjectTracker()
+    if args['magic'] == "1":
+        mosaic = GenMosaic()
+    
+   
     while fvs.more():
         print('***************************************************************')
         # Take each frame
@@ -103,28 +123,13 @@ def main(args):
         
         # Convert BGR to gray
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        
-        
-        
-        
-         
-        # Detect blobs.
-        #keypoints = detector.detect(gray)
-        # Draw detected blobs as red circles.
-        #frame2= np.copy(frame)
-        #cv2.drawKeypoints(gray,keypoints,frame2,color=(0,255,0), flags=0)
-        #
-        # Show keypoints
-        
+             
         if not init_once:
             
             mask = np.zeros_like(frame)
             img = np.zeros_like(frame)
             
             init_once = True
-        
-
-        
 
         # find the keypoints with ORB
         #gray2 = cv2.resize(gray,None,fx=0.5, fy=0.5, interpolation = cv2.INTER_CUBIC)
@@ -139,11 +144,9 @@ def main(args):
         ret,thresh2 = cv2.threshold(gray,seuil_bas,255,cv2.THRESH_BINARY_INV)
         thresh2_dilate = cv2.dilate(thresh2,kernel,iterations = 1)
         thresh2_median  = cv2.medianBlur(thresh2_dilate,3)
-        
-        
-        
-        #if args['no_preview'] == 1:
-            #cv2.imshow('maskMedian',thresh2_median)
+    
+        if args['no_preview'] == 1:
+            cv2.imshow('maskMedian',thresh2_median)
             #cv2.imshow('unknow',unknown)
             
         im2, contours, hierarchy = cv2.findContours(thresh2_median,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
@@ -260,12 +263,13 @@ def main(args):
         numFrame = numFrame + 1
         
 
-            
+        #keyboard control
         if args['no_preview'] == 1:
             k = cv2.waitKey(1)
             if k == 27:
                 cv2.destroyAllWindows()
                 break
+            #the key 'a' allows to fade out tracks 
             elif k==ord('a'):
                 if flag_hide_tracks == False:
                     alpha_1 = 0.495
@@ -278,6 +282,7 @@ def main(args):
                     flag_hide_tracks = False
             elif k==-1:  # normally -1 returned,so don't print it
                 continue
+            #the key "p" allows to have a break 
             elif k==ord('p'):
                 while True:
                     c = cv2.waitKey(25)        
