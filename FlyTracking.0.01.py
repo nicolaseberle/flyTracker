@@ -120,23 +120,13 @@ def main(args):
         
         # Convert BGR to gray
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-             
+        
         if not init_once:
             
             mask = np.zeros_like(frame)
             img = np.zeros_like(frame)
             
             init_once = True
-
-        # find the keypoints with ORB
-        #gray2 = cv2.resize(gray,None,fx=0.5, fy=0.5, interpolation = cv2.INTER_CUBIC)
-        #frame2 = cv2.resize(frame,None,fx=0.5, fy=0.5, interpolation = cv2.INTER_CUBIC)
-        #current_kp, current_desc = orb.detectAndCompute(gray2, None)
-        # compute the descriptors with ORB
-        
-        #cv2.drawKeypoints(gray2,current_kp,frame2,color=(0,255,0), flags=0)
-        #if args['no_preview'] == 1:
-        #    cv2.imshow('frameRGB',frame2)
         
         ret,thresh2 = cv2.threshold(gray,minThreshold,255,cv2.THRESH_BINARY_INV)
         thresh2_dilate = cv2.dilate(thresh2,kernel,iterations = 1)
@@ -208,7 +198,7 @@ def main(args):
             
             
             frame  = cv2.drawContours(frame  ,[box],0,(0,255,0),1)
-            
+
             cx = ((box[0][0] + box[1][0] + box[2][0] + box[3][0])/4)
             cy = ((box[0][1] + box[1][1] + box[2][1] + box[3][1])/4)
             angle = 0
