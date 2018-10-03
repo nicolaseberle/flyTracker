@@ -207,9 +207,8 @@ def main(args):
                         centroids.append(np.sum(label == num))
             
             
-            #frame = cv2.circle(frame,(int(centroids[0]),int(centroids[1])), 2, (255,255,255), -1)
-            #frame = cv2.circle(frame,(int(centroids[3]),int(centroids[4])), 2, (255,255,255), -1)
-            frame  = cv2.rectangle(frame,(box[0][0],box[0][1]),(box[2][0],box[2][1]),(0,255,0),1)
+            frame  = cv2.drawContours(frame  ,[box],0,(0,255,0),1)
+            
             cx = ((box[0][0] + box[1][0] + box[2][0] + box[3][0])/4)
             cy = ((box[0][1] + box[1][1] + box[2][1] + box[3][1])/4)
             angle = 0
