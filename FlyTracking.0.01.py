@@ -53,7 +53,7 @@ def findThresholdMin(frame):
         ex_mat.append(np.reshape(gray[y-10:y+10,x-10:x+10],(1,400)))
     
     print("blob statistics:",np.median(ex_mat),np.mean(ex_mat),np.percentile(ex_mat,20),np.std(ex_mat))
-    new_threshold = np.median(ex_mat)-np.std(ex_mat)
+    new_threshold = np.median(ex_mat)-2*np.std(ex_mat)
     print("new_threshold : ",new_threshold)
     
     return new_threshold
@@ -98,10 +98,10 @@ def main(args):
     time.sleep(1.0)
     ############################################################################    
         
-    for counter in range(50):
+    for counter in range(4100):
         fvs.more()
         frame_pos,frame_full = fvs.read()
-    numFrame = 50    
+    numFrame = 4100
     h,w = frame_full.shape[:2]
     
     #Threshold calibration 
@@ -132,8 +132,8 @@ def main(args):
         thresh2_dilate = cv2.dilate(thresh2,kernel,iterations = 1)
         thresh2_median  = cv2.medianBlur(thresh2_dilate,3)
     
-        #if args['no_preview'] == 1:
-        #    cv2.imshow('maskMedian',thresh2_median)
+        if args['no_preview'] == 1:
+            cv2.imshow('maskMedian',thresh2_median)
             #cv2.imshow('unknow',unknown)
             
         im2, contours, hierarchy = cv2.findContours(thresh2_median,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
