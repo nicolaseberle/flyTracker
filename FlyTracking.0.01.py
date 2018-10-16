@@ -72,6 +72,7 @@ ch = logging.StreamHandler(sys.stdout)
 #formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 #ch.setFormatter(formatter)
 #root.addHandler(ch)
+out = None
 
 def main(args):
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
@@ -79,6 +80,7 @@ def main(args):
     
     flag_hide_tracks = False
     init_once = False
+    flag_init_record = False
     
     alpha_1 = 0.5 # transparency of the mask to see the tracks
     alpha_2 = 0 # transparency of the mask to see the tracks
@@ -98,10 +100,10 @@ def main(args):
     time.sleep(1.0)
     ############################################################################    
         
-    for counter in range(4100):
+    for counter in range(30):
         fvs.more()
         frame_pos,frame_full = fvs.read()
-    numFrame = 4100
+    numFrame = 30
     h,w = frame_full.shape[:2]
     
     #Threshold calibration 
@@ -224,9 +226,12 @@ def main(args):
                 mask = cv2.line(mask, (int(track.old_plot[0][0]),int(track.old_plot[0][1])),(int(track.plot[0][0]),int(track.plot[0][1])), color[track.label].tolist(), 1)                
                 cv2.putText(frame,str(track.label),(int(track.plot[0][0]),int(track.plot[0][1])), font, 0.4,(255,0,0),1,cv2.LINE_AA)
         cv2.putText(frame,'frame ' + str(numFrame),(10,20), font, 0.4,(255,0,0),1,cv2.LINE_AA)
-        
+        cv2.putText(frame,'nb tracks ' + str(len(tracker.tracks)),(10,40), font, 0.4,(255,0,0),1,cv2.LINE_AA)
         if flag_hide_tracks==True:
-            cv2.putText(frame,"fade out activate",(10,40), font, 0.4,(255,0,0),1,cv2.LINE_AA)
+            cv2.putText(frame,"fade out activate",(10,60), font, 0.4,(255,0,0),1,cv2.LINE_AA)
+
+        if flag_init_record == True:
+            cv2.putText(frame,"save video",(10,80), font, 0.4,(255,0,0),1,cv2.LINE_AA)
             
         img = cv2.addWeighted(mask, 1, frame, 1, 0)
         cv2.addWeighted(mask, alpha_1, mask, 0.5, alpha_2 ,mask)
@@ -235,7 +240,9 @@ def main(args):
             cv2.imshow('res',img)
         
         numFrame = numFrame + 1
-
+        
+        if flag_init_record == True:
+            out.write(img)
         #keyboard control
         if args['no_preview'] == 1:
             k = cv2.waitKey(1)
@@ -261,9 +268,21 @@ def main(args):
                     c = cv2.waitKey(25)        
                     if c == ord('p'):
                         break
+            elif k==ord('s'):
+                if flag_init_record == False:
+                    (h__, w__) = img.shape[:2]
+                    fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+                    out = cv2.VideoWriter("flyTracker_out.avi",fourcc , 30, (w__,h__))
+                    flag_init_record = True
+                else:
+                    flag_init_record = False
+                    out.release()
+                    
             else:
                 print(k) # else print its value
         
+
+    
     fvs.stop()
 
 
