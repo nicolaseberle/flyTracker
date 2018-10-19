@@ -27,14 +27,17 @@ class MultipleObjectTracker(object):
                     continue
                 track2 = self.tracks[j]
                 if util.check_tracks_equal(track1, track2):
-                    print('duplicate found!')
+                    if const.VERBOSE_FULL is True: 
+                        print('duplicate found!')
                     # if so, delete shortest track
                     if track1.get_length() > track2.get_length():
                         track2.delete_me = True
-                        print("delete track : " + str(track2.label))
+                        if const.VERBOSE_FULL is True: 
+                            print("delete track : " + str(track2.label))
                     else:
                         track1.delete_me = True
-                        print("delete track : " + str(track1.label))
+                        if const.VERBOSE_FULL is True: 
+                            print("delete track : " + str(track1.label))
                         
         self.tracks = [t for t in self.tracks if t.delete_me is False]
 
@@ -102,8 +105,9 @@ class MultipleObjectTracker(object):
         for _plot in plots:
             
             if _plot.has_match is False and _plot.plot[0][3]>20 and self.indiceFrame < 100 :
-                print("create new tracks from unassigned plot ")
-
+                if const.VERBOSE_LIGHT is True:
+                    print("create new tracks from unassigned plot ")
+                    
                 new_track = Track(self.indiceTrack)
                 new_track.add_to_track(_plot.plot)
                 self.tracks.append(new_track)
@@ -116,15 +120,14 @@ class MultipleObjectTracker(object):
                 liste_track_no_assigned.append(t)
                 #we look for unassigned tracks around a matched track
                 for _t in self.tracks:
-                    dist = np.linalg.norm(_t.plot[0][:2]-t.plot[0][:2])
                     ellipse = t.plot[0][4:9]
-                    
                     if  t.label!=_t.label and _t.has_match is False \
                                     and self.indiceFrame>1 and t.is_singular() == False \
                                         and (t.plot[0][3] > 1.3*t.old_plot[0][3] or t.flag_cluster == True or _t.flag_cluster==True):        
-                        if util.testPtsInEllipse(ellipse,_t.plot) is True:    
+                        if util.testPtsInEllipse(ellipse,_t.plot,_t.speed,const.FPS) is True:    
                             liste_track_no_assigned.append(_t)
-                            print('autour de ' + str(t.label) +  'track ' + str(_t.label) + ' non assigné')
+                            if const.VERBOSE_FULL is True: 
+                                print('autour de ' + str(t.label) +  'track ' + str(_t.label) + ' non assigné')
                 #some tracks have been found
                 n = len(liste_track_no_assigned)
                 if n > 1:#>1 because we add at the beginning the matched track   
@@ -140,26 +143,30 @@ class MultipleObjectTracker(object):
                     
                     for j in range(n):
                         for i,_t in enumerate(liste_track_no_assigned):
-                            dists[i,j] = np.linalg.norm(p[j][:2]-_t.old_plot[0][:2])
-                            print(i,j,dists[i,j])
+                            
+                            dt = 1/const.FPS
+                            #attention old_plot n'existe pas forcément à la deuxième itération
+                            estime_current_plot = _t.old_plot[0][:2]+_t.speed[0][:2]*dt
+                            dists[i,j] = np.linalg.norm(p[j][:2]-estime_current_plot)
+                            #dists[i,j] = np.linalg.norm(p[j][:2]-_t.old_plot[0][:2])
+                            if const.VERBOSE_FULL is True: 
+                                print(i,j,dists[i,j])
                         
                     assigned_rows, assigned_cols = linear_sum_assignment(dists)
                     
                     for idx, row in enumerate(assigned_rows):
-                        
-                        #if t.label == liste_track_no_assigned[row].label:
-                        #    np.delete(t.listPlot,-1)
                             
                         col = assigned_cols[idx]
-                        p_ = np.copy(t.plot)    
+                        p_ = np.copy(liste_track_no_assigned[row].plot)    
                         p_[0][:2] = p[col][:2]
                         p_[0][3] = p[col][2]
                         
-                        #if const.VERBOSE_FULL is True: 
-                        print(row,col,' track ' + str(liste_track_no_assigned[row].label) + ' ' + str(liste_track_no_assigned[row].old_plot[0][0]) + ','+ str(liste_track_no_assigned[row].old_plot[0][1]) + ' -> ' + str(p_[0][0]) + ',' + str(p_[0][1]))
+                        if const.VERBOSE_FULL is True: 
+                            print(row,col,' track ' + str(liste_track_no_assigned[row].label) + ' ' + str(liste_track_no_assigned[row].old_plot[0][0]) + ','+ str(liste_track_no_assigned[row].old_plot[0][1]) + ' -> ' + str(p_[0][0]) + ',' + str(p_[0][1]))
                         plots.append(p_)
                         liste_track_no_assigned[row].has_match = True
-                        liste_track_no_assigned[row].plot = liste_track_no_assigned[row].old_plot
+                        
+                        #liste_track_no_assigned[row].plot = liste_track_no_assigned[row].old_plot
                         liste_track_no_assigned[row].num_misses = 0
                         liste_track_no_assigned[row].flag_cluster = True
                         liste_track_no_assigned[row].add_to_track(p_)
@@ -205,6 +212,7 @@ class Track(object):
         #self.listPlot = np.empty((0,51), dtype='float32')
         #self.listSpeed = np.empty((0,51), dtype='float32')
         self.plot = np.empty((0,1,51), dtype='float32')
+        self.speed = np.zeros((1,51), dtype='float32')
         #self.old_plot = np.empty((0,1,51), dtype='float32')
         self.name_foo = const.DIR_WORKSPACE +  'fly_res_out_' + str(numPiste) +".csv"
         self.init_once = False

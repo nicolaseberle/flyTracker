@@ -220,13 +220,17 @@ def bb_has_width_height(bb):
 def bb_as_ints(bb):
     return [int(bb[0]), int(bb[1]), int(bb[2]), int(bb[3])]
 
-def testPtsInEllipse(e,pts):
-    marge = 2
+def testPtsInEllipse(e,pts,v,fps):
     
-    xc    = e[0]
-    yc    = e[1]
-    a     = e[2] / 2 + marge
-    b     = e[3] / 2 + marge
+    dt = 1/fps
+  
+    dp = v*dt
+    dx, dy = dp[0][:2]/2
+    norm_dp = math.sqrt(dx * dx + dy * dy)
+    xc    = e[0] + dx/2
+    yc    = e[1] + dy/2
+    a     = e[2] / 2  + np.max((2, int(norm_dp)))
+    b     = e[3] / 2  + np.max((2, int(norm_dp)))#we take care the motion to increase the ROI of research
     angle = e[4]*np.pi/180.
     
     res = sqr((float(pts[0][0])-xc) * np.cos(angle) + (float(pts[0][1])-yc) * np.sin(angle)) / sqr(a) + \
@@ -238,3 +242,54 @@ def testPtsInEllipse(e,pts):
 
 def sqr(x):
     return x * x;
+
+
+#def findIsolatedLocalMinima(greyScaleImage):
+#    squareDiameterLog3 = 3 #27x27
+#    greyScaleImage = gaussian(greyScaleImage,2)
+#    total = greyScaleImage
+#    for axis in range(2):
+#        d = 1
+#        for i in range(squareDiameterLog3):
+#            total = np.minimum(total, np.roll(total, d, axis))
+#            total = np.minimum(total, np.roll(total, -d, axis))
+#            d *= 3
+#
+#    minima = total == greyScaleImage
+#    
+#    h,w = greyScaleImage.shape
+#
+#    coord_minima = []
+#    for j in range(h):
+#        for i in range(w):
+#            
+#            if minima[j][i]:
+#                coord_minima.append((i, j))
+#    return coord_minima
+
+#def findNbCentroids(ext_img):
+#    element = cv2.getStructuringElement(cv2.MORPH_CROSS,(3,3))
+#    done = False
+#    size = np.size(ext_img)
+#    skel = np.zeros(ext_img.shape,np.uint8)
+#    
+#    iteration = 0
+#    iteration_lim = 100
+#    while( not done or iteration<iteration_lim):
+#        eroded = cv2.erode(ext_img,element)
+#        temp = cv2.dilate(eroded,element)
+#        temp = cv2.subtract(ext_img,temp)
+#        skel = cv2.bitwise_or(skel,temp)
+#        ext_img = eroded.copy()
+#        #cv2.imshow('erode',ext_img)
+#        #cv2.waitKey(500)
+#        zeros = size - cv2.countNonZero(ext_img)
+#        if zeros==size:
+#            done = True
+#        iteration = iteration + 1
+#        if iteration > iteration_lim:
+#            break
+#    nb_element = cv2.sumElems(skel)
+#    nb_element = float(nb_element[0]) / 255.0
+#    
+#    return nb_element
