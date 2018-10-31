@@ -221,12 +221,19 @@ def bb_as_ints(bb):
     return [int(bb[0]), int(bb[1]), int(bb[2]), int(bb[3])]
 
 def testPtsInEllipse(e,pts,v,fps):
-    
     dt = 1/fps
-  
-    dp = v*dt
-    dx, dy = dp[0][:2]/2
+    if np.isnan(v[0][0]) or np.isinf(v[0][0]) \
+        or np.isnan(v[0][1]) or np.isinf(v[0][1]):
+        dx = 0
+        dy = 0
+    else:
+        dp = v*dt
+        dx, dy = dp[0][:2]/2   
+    
+    
     norm_dp = math.sqrt(dx * dx + dy * dy)
+    
+    
     xc    = e[0] + dx/2
     yc    = e[1] + dy/2
     a     = e[2] / 2  + np.max((2, int(norm_dp)))
