@@ -69,6 +69,13 @@ class QRCodeDetector(object):
                     dict['pos'] = np.array([point for point in obj.polygon], dtype=np.float32)
                     return dict['name']
     
+    def checkAllQRcodeDetected(self):
+        err = 0
+        for dict in self.pattern:
+            if dict['flag'] == "0":
+                err = 3001 #erreur 3001 : all QRCode are not detected
+                
+        return err
     def getQRCode(self,num):
         for dict in self.pattern:
             if dict['data'] == np.str(num) and dict['flag'] == "1":
@@ -80,23 +87,23 @@ class QRCodeDetector(object):
     def decode(self,thresh2) : 
         # Find barcodes and QR codes
         self.decodedObjects = pyzbar.decode(thresh2, symbols=[ZBarSymbol.QRCODE],scan_locations=True)
-     
+        print(self.decodedObjects)
         # Print results
         for obj in self.decodedObjects:
-            #print('Type : ', obj.type)
-            #print('Data : ', np.int8(obj.data),'\n')
             self.findAndReplace(obj)
 
+    
     def scan(self):
         gray = cv2.cvtColor(self.im, cv2.COLOR_BGR2GRAY)
-        for threshold_i in range(30,80,5):
+        for threshold_i in range(20,100,5):
             ret,thresh2 = cv2.threshold(gray,threshold_i,255,cv2.THRESH_BINARY)
         
             # thresholded = cv2.inRange(gray,(0,0,0),(200,200,200))
             thresh2 = cv2.cvtColor(thresh2,cv2.COLOR_GRAY2BGR) # black-in-white
     
             self.decode(thresh2)
-        
+            
+        return self.checkAllQRcodeDetected()
  
     # Display barcode and QR code location  
     def display(self):
@@ -129,19 +136,32 @@ class QRCodeDetector(object):
 if __name__ == '__main__':
  
     ap = argparse.ArgumentParser()
-    ap.add_argument("-i", "--input-video", type=str, default=-1,
+    ap.add_argument("-v", "--input-video", type=str, default=-1,
                     help="# relative path of the input video to analyse")
+    ap.add_argument("-i", "--input-image", type=str, default=-1,
+                    help="# relative path of the input video to analyse")                    
     args = vars(ap.parse_args())
-    fvs = FileVideoStream(args['input_video'],1).start()
-    frame_pos,frame = fvs.read()
-    frame = imutils.resize(frame, width=800)
+    
+    if args['input_video']!=-1:
+        fvs = FileVideoStream(args['input_video'],1).start()
+        frame_pos,frame = fvs.read()
+    if args['input_image']!=-1:
+        frame = cv2.imread(args['input_image'], flags=cv2.IMREAD_COLOR)
+        
+    print(frame.shape)
+    cv2.imshow("input", frame );
+    cv2.waitKey(0);
+ 
+    # frame = imutils.resize(frame, width=1000)
     # frame = imutils.resize(frame, width=400)
     
-    
     QRCode = QRCodeDetector(frame)
-    QRCode.scan()
-    
-    
+    err = QRCode.scan()
+    print(QRCode.getPattern())
+    if err > 0:
+        print("erreur detection arene")
+        exit(0)
+        
     Arene = AreneDetector(QRCode.getPattern(),frame)
     Arene.computeArenePos()
     Arene.display()
