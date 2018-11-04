@@ -1,8 +1,8 @@
-
+# coding=utf-8
 
 import cv2
 import numpy as np
-from multipleObjectTracker_3 import MultipleObjectTracker
+from multipleObjectTracker_4 import MultipleObjectTracker
 from filevideostream import FileVideoStream
 from genMosaic import GenMosaic
 import tracker_constant as const
@@ -22,7 +22,7 @@ def findThresholdMin(frame):
      
     # Change thresholds
     params.minThreshold = 10;
-    params.maxThreshold = 80;
+    params.maxThreshold = 140;
      
     # Filter by Area.
     params.filterByArea = True
@@ -87,34 +87,37 @@ def main(args):
     alpha_2 = 0 # transparency of the mask to see the tracks
     #X vers le bas, Y vers la droite
     
-    kernel = cv2.getStructuringElement(cv2.MORPH_CROSS,(3,3))
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(9,9))
     color = np.random.randint(0,255,(255,3))
         
     ############################################################################
     fvs = FileVideoStream(args['input_video'],1).start()
     time.sleep(1.0)
     ############################################################################    
-        
-    for counter in range(30):
+    numFrame = 5
+    for counter in range(numFrame):
         fvs.more()
         frame_pos,frame_full = fvs.read()
-    numFrame = 30
+    
     h,w = frame_full.shape[:2]
     
     #Threshold calibration 
-    minThreshold = findThresholdMin(frame_full)
+    minThreshold = 60#findThresholdMin(frame_full)
     
     #init du tracker
     tracker = MultipleObjectTracker()
     if args['magic'] == "1":
         mosaic = GenMosaic()
     
+    count = 0
+    hog = cv2.HOGDescriptor()
    
     while fvs.more():
         print('***************************************************************')
         # Take each frame
         frame_pos,frame = fvs.read()
-        
+        height , width, channel = frame.shape
+        #frame = cv2.resize(frame,(width/2, height/2), interpolation = cv2.INTER_LINEAR)
         # Convert BGR to gray
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         
@@ -125,9 +128,13 @@ def main(args):
             
             init_once = True
         
+        
         ret,thresh2 = cv2.threshold(gray,minThreshold,255,cv2.THRESH_BINARY_INV)
+        
         thresh2_dilate = cv2.dilate(thresh2,kernel,iterations = 1)
-        thresh2_median  = cv2.medianBlur(thresh2_dilate,3)
+        thresh2_erode = cv2.erode(thresh2_dilate ,kernel,iterations = 1)
+        
+        thresh2_median  = cv2.medianBlur(thresh2_erode,5)
     
         if args['no_preview'] == 1:
             cv2.imshow('maskMedian',thresh2_median)
@@ -153,7 +160,9 @@ def main(args):
             box = np.int0(box)
             if args['magic'] == "1" :
                 mosaic.addImage(frame[y:y+h, x:x+w])
-            
+            if args['flagTraining'] == "1":
+                cv2.imwrite(args['output'] + 'train_'+ str(count) + '.jpg',frame[y-10:y+h+10, x-10:x+w+10])
+                count = count + 1
             if len(cnt[:][:])>=5:
                 # Bounding ellipse
                 
@@ -181,6 +190,7 @@ def main(args):
                 if number_points<=n:
                     cx = ((box[0][0] + box[1][0] + box[2][0] + box[3][0])/4)
                     cy = ((box[0][1] + box[1][1] + box[2][1] + box[3][1])/4)
+                    
                     for num in range(n):
                         centroids.append(int(cx))
                         centroids.append(int(cy))
@@ -192,9 +202,15 @@ def main(args):
                         centroids.append(int(float(center[num][1]) + y))
                         centroids.append(np.sum(label == num))
             
+            frame_2  = cv2.drawContours(frame  ,[box],0,(0,255,0),1)   
+            cv2.circle(frame_2,(centroids[0], centroids[1]), 3, (0,0,255), -1)
+            cv2.circle(frame_2,(centroids[3], centroids[4]), 3, (0,0,255), -1)
+            kp1, des1 = hog.detectAndCompute(frame[y-20:y+h+20, x-20:x+w+20],None)
+            print(kp1)
+            #kp, descr = orb.compute(frame, [(centroids[0], centroids[1])])
+            #print(descr)
             
-            frame  = cv2.drawContours(frame  ,[box],0,(0,255,0),1)
-
+            
             cx = ((box[0][0] + box[1][0] + box[2][0] + box[3][0])/4)
             cy = ((box[0][1] + box[1][1] + box[2][1] + box[3][1])/4)
             angle = 0
@@ -215,22 +231,23 @@ def main(args):
         print("time: ",str(frame_pos), " num frame : " + str(numFrame))
         for i, track in enumerate(tracker.tracks):
             if track.has_match is True:
-                print("PISTE "  + str(i) + " label : " + str(track.label)  + " X: " + str(track.plot[0][0]) + " Y: " + str(track.plot[0][1]) + " Theta: " + str(track.plot[0][2]) + " S: " + str(track.plot[0][3]))
-
+                print("PISTE "  + str(i) + " label : " + str(track.label)  + " X: " + str(track.plot[0][0]) + " Y: " + str(track.plot[0][1]) + " Theta: " + str(track.plot[0][2]) + " S: " + str(track.plot[0][3]))        
                 mask = cv2.line(mask, (int(track.old_plot[0][0]),int(track.old_plot[0][1])),(int(track.plot[0][0]),int(track.plot[0][1])), color[track.label].tolist(), 1)                
-                cv2.putText(frame,str(track.label),(int(track.plot[0][0]),int(track.plot[0][1])), font, 0.4,(255,0,0),1,cv2.LINE_AA)
-        cv2.putText(frame,'frame ' + str(numFrame),(10,20), font, 0.4,(255,0,0),1,cv2.LINE_AA)
-        cv2.putText(frame,'nb tracks ' + str(len(tracker.tracks)),(10,40), font, 0.4,(255,0,0),1,cv2.LINE_AA)
+                cv2.putText(frame_2,str(track.label),(int(track.plot[0][0]),int(track.plot[0][1])), font, 0.4,(255,0,0),1,cv2.LINE_AA)
+        cv2.putText(frame_2,'frame ' + str(numFrame),(10,20), font, 0.4,(255,0,0),1,cv2.LINE_AA)
+        #cv2.putText(frame,'nb tracks ' + str(len(tracker.tracks)),(10,40), font, 0.4,(255,0,0),1,cv2.LINE_AA)
         if flag_hide_tracks==True:
-            cv2.putText(frame,"fade out activate",(10,60), font, 0.4,(255,0,0),1,cv2.LINE_AA)
+            cv2.putText(frame_2,"fade out activate",(10,60), font, 0.4,(255,0,0),1,cv2.LINE_AA)
 
         if flag_init_record == True:
-            cv2.putText(frame,"save video",(10,80), font, 0.4,(255,0,0),1,cv2.LINE_AA)
+            cv2.putText(frame_2,"save video",(10,80), font, 0.4,(255,0,0),1,cv2.LINE_AA)
             
-        img = cv2.addWeighted(mask, 1, frame, 1, 0)
+        img = cv2.addWeighted(mask, 1, frame_2, 1, 0)
         cv2.addWeighted(mask, alpha_1, mask, 0.5, alpha_2 ,mask)
         
         if args['no_preview'] == 1:
+            #im_color = cv2.applyColorMap(img, cv2.COLORMAP_JET)
+            img = cv2.resize(img,(width, height), interpolation = cv2.INTER_LINEAR)
             cv2.imshow('res',img)
         
         numFrame = numFrame + 1
@@ -266,7 +283,8 @@ def main(args):
                 if flag_init_record == False:
                     (h__, w__) = img.shape[:2]
                     fourcc = cv2.VideoWriter_fourcc(*'MJPG')
-                    out = cv2.VideoWriter("flyTracker_out.avi",fourcc , 30, (w__,h__))
+                    fd_video_out = args["output"] + "flyTracker_out.avi"
+                    out = cv2.VideoWriter(fd_video_out,fourcc , 30, (w__,h__))
                     flag_init_record = True
                 else:
                     flag_init_record = False
@@ -274,15 +292,13 @@ def main(args):
                     
             else:
                 print(k) # else print its value
-        
-
     
     fvs.stop()
 
 
 if __name__ == '__main__':
     __version__ = 0.3
-    print("FlyTracker version  :" + str(__version__))
+    print("MouseTracker version  :" + str(__version__))
     # construct the argument parse and parse the arguments
     ap = argparse.ArgumentParser()
     ap.add_argument("-i", "--input-video", type=str, default=-1,
@@ -292,6 +308,8 @@ if __name__ == '__main__':
     #not used
     ap.add_argument("-o", "--output", type=str, default=const.DIR_WORKSPACE,
                     help="# output directory")
+    ap.add_argument("-e", "--flagTraining", type=str, default=0,
+                    help="# training image extraction ")                
     ap.add_argument("-m", "--magic", type=str, default=0,
                     help="# magic option")
                     
