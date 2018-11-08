@@ -205,8 +205,29 @@ def main(args):
             frame_2  = cv2.drawContours(frame  ,[box],0,(0,255,0),1)   
             cv2.circle(frame_2,(centroids[0], centroids[1]), 3, (0,0,255), -1)
             cv2.circle(frame_2,(centroids[3], centroids[4]), 3, (0,0,255), -1)
-            kp1, des1 = hog.detectAndCompute(frame[y-20:y+h+20, x-20:x+w+20],None)
-            print(kp1)
+            
+            winSize = (64,64)
+            blockSize = (16,16)
+            blockStride = (8,8)
+            cellSize = (8,8)
+            nbins = 9
+            derivAperture = 1
+            winSigma = 4.
+            histogramNormType = 0
+            L2HysThreshold = 2.0000000000000001e-01
+            gammaCorrection = 0
+            nlevels = 64
+            hog = cv2.HOGDescriptor(winSize,blockSize,blockStride,cellSize,nbins,derivAperture,winSigma,
+                                    histogramNormType,L2HysThreshold,gammaCorrection,nlevels)
+            #compute(img[, winStride[, padding[, locations]]]) -> descriptors
+            winStride = (8,8)
+            padding = (8,8)
+            locations = ((10,20),)
+            hist = hog.compute(frame[y-20:y+h+20, x-20:x+w+20],winStride,padding,locations)
+
+
+            #kp1, des1 = hog.compute(frame[y-20:y+h+20, x-20:x+w+20],None)
+            print(hist)
             #kp, descr = orb.compute(frame, [(centroids[0], centroids[1])])
             #print(descr)
             

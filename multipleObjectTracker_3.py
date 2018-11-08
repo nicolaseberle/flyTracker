@@ -18,7 +18,6 @@ class MultipleObjectTracker(object):
         self.indiceFrame = 0
         
     def __delete_duplicate_tracks(self):
-
         # check if tracks 'heads' are identical
         for i in np.arange(len(self.tracks)):
             track1 = self.tracks[i]
@@ -55,13 +54,14 @@ class MultipleObjectTracker(object):
                 self.tracks.append(t)
                 self.indiceTrack += 1
             return True
-            
+        #init of dist : the distance matrix between current_plot and the plots of tracks
         dists = np.zeros(shape=(len(self.tracks), len(plots)))
         distsArea = np.zeros(shape=(len(self.tracks), len(plots)))
         if const.VERBOSE_LIGHT is True:
             print('nb tracks  ' + str(len(self.tracks)))
             print('nb plots ' + str(len(plots)))
         
+        #compute the distance matrix between current_plot and the plots of tracks
         for i, track in enumerate(self.tracks):
             for j, _plot in enumerate(plots):
                 
@@ -132,8 +132,15 @@ class MultipleObjectTracker(object):
                 n = len(liste_track_no_assigned)
                 if n > 1:#>1 because we add at the beginning the matched track   
                     t.flag_cluster = True
+# a relire
+                    for i__ in range(n):
+                        if liste_track_no_assigned[i__].nbplot>2 :
+                            liste_track_no_assigned[0].plot[0][:2] = liste_track_no_assigned[0].old_plot[0][:2]
+                            print("INIT Cluster Track",liste_track_no_assigned[i__].old_plot[0][:2],liste_track_no_assigned[i__].plot[0][:2])
+#
                     #we load the n centroids from kmean of the cluster track. n = number of unassigned tracks in the cluster
                     p = np.empty(shape=(n,3), dtype='float32')
+                    #offset pour récupérer les centres issus du Kmean
                     offset = 6
                     for iteration in range(1,n):
                         offset = offset + 3*(n-iteration) 
@@ -230,7 +237,9 @@ class Track(object):
         
         
     def add_to_track(self,_plot):
-        if( self.nbplot != 0 ):
+        if self.nbplot > 1 :
+            self.old_old_plot = self.old_plot
+        if self.nbplot > 0 :
             self.old_plot = self.plot
         
         
@@ -270,7 +279,7 @@ class Track(object):
         self.roi_of_search = const.MAX_PIXELS_DIST_TRACK
         
     def compute_speed(self):
-        if self.nbplot  != 1:
+        if self.nbplot  > 1:
             dt = 1/const.FPS
             self.speed = (self.plot - self.old_plot)/dt
             #self.listSpeed = np.concatenate((self.listSpeed,self.speed))

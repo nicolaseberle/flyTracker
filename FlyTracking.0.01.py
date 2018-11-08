@@ -54,7 +54,7 @@ def findThresholdMin(frame):
         ex_mat.append(np.reshape(gray[y-10:y+10,x-10:x+10],(1,400)))
     
     print("blob statistics:",np.median(ex_mat),np.mean(ex_mat),np.percentile(ex_mat,20),np.std(ex_mat))
-    new_threshold = np.median(ex_mat)-2*np.std(ex_mat)
+    new_threshold = np.median(ex_mat)-1.5*np.std(ex_mat)
     print("new_threshold : ",new_threshold)
     
     return new_threshold
@@ -63,7 +63,35 @@ def findThresholdMin(frame):
     # Draw detected blobs as red circles.
     #frame2= np.copy(frame)
     #cv2.drawKeypoints(gray,keypoints,frame2,color=(0,255,0), flags=0)
+
+class Parameters(object):
+    def __init__(self):
+        self.flag_hide_tracks = False
+        self.init_once = False
+        self.flag_init_record = False
     
+        self.alpha_1 = 0.5 # transparency of the mask to see the tracks
+        self.alpha_2 = 0 # transparency of the mask to see the tracks
+    
+
+class Manager(object):
+    def __init__(self):
+        self.current_frame = None
+        self.numFrame = 0
+        self.measurment = None
+        
+    def process(self):
+        self.openVideo()
+        while(1):
+            self.nextFrame()    
+        
+    def openVideo(self):
+        print("openVideo")
+        
+    def nextFrame(self):
+        print("nextFrame")
+        self.detect()
+        self.tracks()
 
 root = logging.getLogger()
 root.setLevel(logging.DEBUG)
@@ -75,10 +103,13 @@ ch = logging.StreamHandler(sys.stdout)
 #root.addHandler(ch)
 out = None
 
+
+
 def main(args):
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
     font = cv2.FONT_HERSHEY_SIMPLEX
     
+    parameters = Parameters()
     flag_hide_tracks = False
     init_once = False
     flag_init_record = False
@@ -281,7 +312,7 @@ def main(args):
 
 
 if __name__ == '__main__':
-    __version__ = 0.3
+    __version__ = 0.4
     print("FlyTracker version  :" + str(__version__))
     # construct the argument parse and parse the arguments
     ap = argparse.ArgumentParser()

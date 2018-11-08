@@ -249,7 +249,7 @@ class Track(object):
         if self.nbplot > 0 :
             self.old_plot = self.plot
         
-            
+        
         self.plot = _plot
         #self.listPlot = np.concatenate((self.listPlot,self.plot))
         
