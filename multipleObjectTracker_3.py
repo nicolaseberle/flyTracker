@@ -67,7 +67,7 @@ class MultipleObjectTracker(object):
                 
                 dist = np.linalg.norm(_plot.plot[0][:2]-track.plot[0][:2])#ONLY X,Y NO AREA, NO ANGLE
                 
-                distArea = np.linalg.norm(_plot.plot[0][3]-track.plot[0][3])
+                distArea = np.linalg.norm(_plot.plot[0][3]-track.plot[0][3])#ONLY AREA
                 if track.is_singular():
                     max_dist = track.roi_of_search#const.MAX_PIXELS_DIST_TRACK_START
                 else:
@@ -226,7 +226,7 @@ class Track(object):
         self.roi_of_search = const.MAX_PIXELS_DIST_TRACK
         self.area = -1#NOT COMPUTE DURING INIT
         self.flag_cluster = False
-        self.flag_touch = 'A'
+        self.flag_touch = 0
         
         
     def createFoo(self):
@@ -292,7 +292,7 @@ class Track(object):
     
     def updateStatus(self):
         if self.flag_cluster is True:
-            self.flag_touch = 'T'
+            self.flag_touch = 1
         else:
-            self.flag_touch = 'A'
+            self.flag_touch = 0
     

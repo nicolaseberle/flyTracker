@@ -30,28 +30,29 @@ class Parameters(object):
         self.magic = args['magic']
         self.videofilename = args['input_video']
         self.display = args['no_preview']
-        self.name_foo = const.DIR_WORKSPACE +  'fly_res_out.csv"
+        self.name_foo = const.DIR_WORKSPACE +  'fly_res_out.csv'
         
     def set_init_once(self,state):
         self.init_once = state
 
 class Measurement(object):
-    def __init__(self):
-        self.numTot = 42
+    def __init__(self,param):
+        self.numTot = 40
+        self.name_foo = param.name_foo
         headerTrack = ['Track_' + str(num) for num in range(self.numTot) ]
         self.header = pd.MultiIndex.from_product([headerTrack ,
-                                     ['X','Y','VX','VY']],
+                                     ['X','Y','VX','VY','Theta','T']],
                                     names=['track','pos'])
         self.pd_measurements = pd.DataFrame( columns = self.header ) 
         
     def saveMeasurement(self,tracker,numFrame,date):
-        empty_array = np.empty((1,self.numTot*4,))
+        empty_array = np.empty((1,self.numTot*6,))
         empty_array [:] = np.nan
         tmp = pd.DataFrame(empty_array , index=[numFrame], columns = self.header )
         tmp.index.names = ['numFrame']
         for i, track in enumerate(tracker.tracks):
             if track.has_match is True:
-                tmp.loc[numFrame,['Track_'+str(track.label)]] = [track.plot[0][0],track.plot[0][1],0,0]
+                tmp.loc[numFrame,['Track_'+str(track.label)]] = [track.plot[0][0],track.plot[0][1],track.speed[0][0],track.speed[0][1],track.plot[0][2],track.flag_touch]
         self.pd_measurements  = pd.concat([self.pd_measurements ,tmp])
         if numFrame%200 == 0:
             self.pd_measurements.to_csv(self.name_foo,mode='w',sep=':')
@@ -64,9 +65,9 @@ class Manager(object):
         self.frame_date = None
         self.numFirstFrame = 30
         self.numCurrentFrame = 0
-        self.measurement = Measurement()
         self.res = pd.DataFrame()
         self.parameters = Parameters(args)
+        self.measurement = Measurement(self.parameters)
         if self.parameters.magic == "1": 
             self.mosaic = GenMosaic()
         
