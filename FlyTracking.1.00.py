@@ -53,6 +53,7 @@ class Measurement(object):
         for i, track in enumerate(tracker.tracks):
             if track.has_match is True:
                 tmp.loc[numFrame,['Track_'+str(track.label)]] = [track.plot[0][0],track.plot[0][1],track.speed[0][0],track.speed[0][1],track.plot[0][2],track.flag_touch]
+                
         self.pd_measurements  = pd.concat([self.pd_measurements ,tmp])
         if numFrame%200 == 0:
             self.pd_measurements.to_csv(self.name_foo,mode='w',sep=':')
