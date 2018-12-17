@@ -16,8 +16,11 @@ import pandas as pd
 import logging
 import sys
 
+from joblib import Parallel, delayed
+import multiprocessing
+
 class Parameters(object):
-    def __init__(self,args):
+    def __init__(self,args,num_arene):
         self.flag_hide_tracks = False
         self.init_once = False
         self.flag_init_record = False
@@ -31,11 +34,12 @@ class Parameters(object):
         self.magic = args['magic']
         self.videofilename = args['input_video']
         self.display = args['no_preview']
+        self.nbArene = args['nb_arene']
         self.name_foo = []
         self.ofile = []
         self.writer = []
         for label in range (50):
-            self.name_foo.append(const.DIR_WORKSPACE +  'fly_res_out'+ str(label) + '.csv')
+            self.name_foo.append(const.DIR_WORKSPACE +  'fly_arene_' + str(num_arene) + '_num_' + str(label) + '.csv')
             self.createFoo(label)
 
     def set_init_once(self,state):
@@ -75,21 +79,26 @@ class Measurement(object):
             self.parameters.writer[track.label].writerow([date,numFrame , track.plot[0][0],track.plot[0][1],track.speed[0][0], track.speed[0][1],track.flag_touch ] )
 
 class Manager(object):
-    def __init__(self,args):
+    def __init__(self,args,num_arene):
         self.frame_full = None
         self.frame_date = None
         self.numFirstFrame = 30
         self.numCurrentFrame = 0
         self.res = pd.DataFrame()
-        self.parameters = Parameters(args)
+        self.parameters = Parameters(args,num_arene)
         self.measurement = Measurement(self.parameters)
+        self.numArene = num_arene
+        self.initDisplay = 0
         if self.parameters.magic == "1":
             self.mosaic = GenMosaic()
 
-    def process(self):
+    def process(self,roi):
+
+        num_arene = roi[0]
+
         self.calibration()
         self.initTracker()
-        while(self.nextFrame()):
+        while(self.nextFrame(roi)):
             self.extractionPlot()
             self.track()
             self.save()
@@ -142,13 +151,13 @@ class Manager(object):
             else:
                 print(k) # else print its value
 
-    def openVideo(self):
+    def openVideo(self,roi):
         print("openVideo")
         self.fvs = FileVideoStream(self.parameters.videofilename,1).start()
         time.sleep(1.0)
         if self.numFirstFrame>0:
             for counter in range(self.numFirstFrame):
-                self.nextFrame()
+                self.nextFrame(roi)
 
         self.h,self.w = self.frame.shape[:2]
 
@@ -244,13 +253,17 @@ class Manager(object):
         print("tracker")
         self.tracker.update_tracks(self.pos_t)
 
-    def nextFrame(self):
+    def nextFrame(self,roi):
         print("nextFrame : load next frame")
         err = self.fvs.more()
+        time.sleep(0.005)
         if err !=1:
             return err
 
         self.frame_date,self.frame = self.fvs.read()
+        x1 = roi[1]
+        x2 = roi[2]
+        self.frame = self.frame[x1[1]:x2[1],x1[0]:x2[0],:]
         self.numCurrentFrame += 1
         return err
 
@@ -266,7 +279,7 @@ class Manager(object):
         print("time: ",str(self.frame_date), " num frame : " + str(self.numCurrentFrame))
         for i, track in enumerate(self.tracker.tracks):
             if track.has_match is True:
-                print("PISTE "  + str(i) + " label : " + str(track.label)  + " X: " + str(track.plot[0][0]) + " Y: " + str(track.plot[0][1]) + " Theta: " + str(track.plot[0][2]) + " S: " + str(track.plot[0][3]))
+                print("ARENE " + str(self.numArene) + " PISTE "  + str(i) + " label : " + str(track.label)  + " X: " + str(track.plot[0][0]) + " Y: " + str(track.plot[0][1]) + " Theta: " + str(track.plot[0][2]) + " S: " + str(track.plot[0][3]))
 
                 self.mask = cv2.line(self.mask, (int(track.old_plot[0][0]),int(track.old_plot[0][1])),(int(track.plot[0][0]),int(track.plot[0][1])), self.parameters.color[track.label].tolist(), 1)
                 cv2.putText(self.frame,str(track.label),(int(track.plot[0][0]),int(track.plot[0][1])), self.parameters.font, 0.4,(255,0,0),1,cv2.LINE_AA)
@@ -282,7 +295,9 @@ class Manager(object):
         cv2.addWeighted(self.mask, self.parameters.alpha_1, self.mask, 0.5, self.parameters.alpha_2 ,self.mask)
 
         if self.parameters.display == 1:
-            cv2.imshow('res',self.img)
+            figureName = 'res_' + str(self.numArene)
+            cv2.imshow(figureName,self.img)
+            cv2.waitKey(1)
 
         if self.parameters.flag_init_record == True:
             self.out.write(self.img)
@@ -341,21 +356,59 @@ ch = logging.StreamHandler(sys.stdout)
 #root.addHandler(ch)
 out = None
 
+class MultiAppManager(object):
+    def __init__(self,args,posArene):
+        self.args = args
+        self.nb_arene = 4
+        self.posArene = posArene
+
+    def run(self,roi):
+        num_arene = roi[0]
+        print(num_arene)
+        app = Manager(self.args,num_arene)
+        app.openVideo(roi)
+        app.process(roi)
+        app.stop()
+
+
+def initPosArene(args):
+
+    posArene = []
+    fvs = FileVideoStream(args['input_video'],1).start()
+    time.sleep(1.0)
+    err = fvs.more()
+    date,frame = fvs.read()
+
+    height,width,channel = frame.shape
+    scale = 2.5
+    src = cv2.resize(frame,(int(width/scale), int(height/scale)), interpolation = cv2.INTER_LINEAR)
+
+    gray = cv2.cvtColor(src, cv2.COLOR_BGR2GRAY)
+    rows = gray.shape[0]
+    circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT, 1, rows / 8,
+                               param1=20, param2=50,
+                               minRadius=int(80/scale), maxRadius=int(140/scale))
+    if circles.shape[1] == 4:
+        index_roi = 1
+        for i in circles[0, :]:
+            x1 = (int(i[0]*scale-200), int(i[1]*scale-200))
+            x2 = (int(i[0]*scale+200), int(i[1]*scale+200))
+            str_roi = index_roi
+            posArene.append([index_roi,x1,x2])
+            index_roi = index_roi +1
+    return posArene
 
 def main(args):
+    num_cores = multiprocessing.cpu_count()
+    posArene = initPosArene(args)
+    print(posArene)
+    multiApp = MultiAppManager(args,posArene)
+    results = Parallel(n_jobs=num_cores)(delayed(multiApp.run)(roi) for roi in posArene)
 
-    app = Manager(args)
-    app.openVideo()
-    app.process()
-    #init du tracker
-
-
-
-    app.stop()
 
 
 if __name__ == '__main__':
-    __version__ = 1.0
+    __version__ = 2.0
     print("FlyTracker version  :" + str(__version__))
     # construct the argument parse and parse the arguments
     ap = argparse.ArgumentParser()
@@ -363,6 +416,8 @@ if __name__ == '__main__':
                     help="# relative path of the input video to analyse")
     ap.add_argument("-n", "--no-preview", type=str, default=1,
                     help="# desactivate the preview of the results")
+    ap.add_argument("-a", "--nb-arene", type=int, default=4,
+                                        help="# nb of arenes in the set")
     #not used
     ap.add_argument("-o", "--output", type=str, default=const.DIR_WORKSPACE,
                     help="# output directory")

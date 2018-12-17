@@ -38,3 +38,8 @@ lancer une page html://localhost:9000
 #######################################################################
 
 raspivid -t 10000 -w 1280 -h 960 -fps 30 -ex auto -rf gray -b 1200000 -p 200,200,640,480 -o fly_tracker.h264 && MP4Box -add fly_tracker.h264 fly_tracker.mp4
+
+
+
+
+300pxx300px - 10 tracked flies  - 60fps
