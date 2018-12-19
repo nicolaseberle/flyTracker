@@ -9,6 +9,8 @@ import tracker_constant as const
 import argparse
 import time
 import csv
+from QRcodeDetection import QRCodeDetector
+from QRcodeDetection import AreneDetector
 
 from tkinter import filedialog
 import pandas as pd
@@ -34,11 +36,10 @@ class Parameters(object):
         self.magic = args['magic']
         self.videofilename = args['input_video']
         self.display = args['no_preview']
-        self.nbArene = args['nb_arene']
         self.name_foo = []
         self.ofile = []
         self.writer = []
-        for label in range (50):
+        for label in range (200):
             self.name_foo.append(const.DIR_WORKSPACE +  'fly_arene_' + str(num_arene) + '_num_' + str(label) + '.csv')
             self.createFoo(label)
 
@@ -153,7 +154,7 @@ class Manager(object):
 
     def openVideo(self,roi):
         print("openVideo")
-        self.fvs = FileVideoStream(self.parameters.videofilename,1).start()
+        self.fvs = FileVideoStream(self.parameters.videofilename,1,64,roi).start()
         time.sleep(1.0)
         if self.numFirstFrame>0:
             for counter in range(self.numFirstFrame):
@@ -256,14 +257,14 @@ class Manager(object):
     def nextFrame(self,roi):
         print("nextFrame : load next frame")
         err = self.fvs.more()
-        time.sleep(0.005)
+        time.sleep(0.010)
         if err !=1:
             return err
 
         self.frame_date,self.frame = self.fvs.read()
         x1 = roi[1]
         x2 = roi[2]
-        self.frame = self.frame[x1[1]:x2[1],x1[0]:x2[0],:]
+        #self.frame = self.frame[x1[1]:x2[1],x1[0]:x2[0],:]
         self.numCurrentFrame += 1
         return err
 
@@ -294,7 +295,7 @@ class Manager(object):
         self.img = cv2.addWeighted(self.mask, 1, self.frame, 1, 0)
         cv2.addWeighted(self.mask, self.parameters.alpha_1, self.mask, 0.5, self.parameters.alpha_2 ,self.mask)
 
-        if self.parameters.display == 1:
+        if self.parameters.display == 1: #and  self.numCurrentFrame%2==0:
             figureName = 'res_' + str(self.numArene)
             cv2.imshow(figureName,self.img)
             cv2.waitKey(1)
@@ -305,6 +306,7 @@ class Manager(object):
     def findThresholdMin(self):
         # Setup SimpleBlobDetector parameters.
         params = cv2.SimpleBlobDetector_Params()
+        marge  = 10
 
         # Change thresholds
         params.minThreshold = 10;
@@ -334,14 +336,22 @@ class Manager(object):
         # Detect blobs.
         ex_mat = []
         keypoints = detector.detect(gray)
-        for kpoint in keypoints:
-            x = int(kpoint.pt[0])
-            y = int(kpoint.pt[1])
-            ex_mat.append(np.reshape(gray[y-10:y+10,x-10:x+10],(1,400)))
+        print(keypoints)
+        height,width = gray.shape
+        if len(keypoints) != 0:
+            for kpoint in keypoints:
+                x = int(kpoint.pt[0])
+                y = int(kpoint.pt[1])
+                if x > marge and y > marge and x < width - marge and y < height - marge:
+                    ex_mat.append(np.reshape(gray[y-marge:y+marge,x-marge:x+marge],(1,400)))
 
-        print("blob statistics:",np.median(ex_mat),np.mean(ex_mat),np.percentile(ex_mat,20),np.std(ex_mat))
-        self.minThreshold = np.median(ex_mat)-2*np.std(ex_mat)
-        print("minThreshold : ",self.minThreshold)
+            print("blob statistics:",np.median(ex_mat),np.mean(ex_mat),np.percentile(ex_mat,20),np.std(ex_mat))
+            self.minThreshold = np.median(ex_mat)-2*np.std(ex_mat)
+            print("minThreshold : ",self.minThreshold)
+        else:
+            print("no blob has been found")
+            self.minThreshold = 40
+            print("minThreshold : ",self.minThreshold)
 
     def stop(self):
         self.fvs.stop()
@@ -359,7 +369,7 @@ out = None
 class MultiAppManager(object):
     def __init__(self,args,posArene):
         self.args = args
-        self.nb_arene = 4
+        self.nb_arene = len(posArene)
         self.posArene = posArene
 
     def run(self,roi):
@@ -371,37 +381,64 @@ class MultiAppManager(object):
         app.stop()
 
 
-def initPosArene(args):
+def initPosArene(args,flag):
 
     posArene = []
     fvs = FileVideoStream(args['input_video'],1).start()
     time.sleep(1.0)
     err = fvs.more()
     date,frame = fvs.read()
-
     height,width,channel = frame.shape
-    scale = 2.5
-    src = cv2.resize(frame,(int(width/scale), int(height/scale)), interpolation = cv2.INTER_LINEAR)
 
-    gray = cv2.cvtColor(src, cv2.COLOR_BGR2GRAY)
-    rows = gray.shape[0]
-    circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT, 1, rows / 8,
+    if flag == 1:
+        scale = 2.5
+        src = cv2.resize(frame,(int(width/scale), int(height/scale)), interpolation = cv2.INTER_LINEAR)
+        gray = cv2.cvtColor(src, cv2.COLOR_BGR2GRAY)
+        rows = gray.shape[0]
+        circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT, 1, rows / 8,
                                param1=20, param2=50,
                                minRadius=int(80/scale), maxRadius=int(140/scale))
-    if circles.shape[1] == 4:
-        index_roi = 1
-        for i in circles[0, :]:
-            x1 = (int(i[0]*scale-200), int(i[1]*scale-200))
-            x2 = (int(i[0]*scale+200), int(i[1]*scale+200))
-            str_roi = index_roi
-            posArene.append([index_roi,x1,x2])
-            index_roi = index_roi +1
+        if circles.shape[1] == 4:
+            index_roi = 1
+            for i in circles[0, :]:
+                x1 = (int(i[0]*scale-200), int(i[1]*scale-200))
+                x2 = (int(i[0]*scale+200), int(i[1]*scale+200))
+                str_roi = index_roi
+                posArene.append([index_roi,x1,x2])
+                index_roi = index_roi +1
+    elif flag == 2:
+        QRCode = QRCodeDetector(frame)
+        err = QRCode.scan()
+        print(QRCode.getPattern())
+        QRCode.display()
+        if err > 0:
+            print("erreur detection arene")
+            exit(0)
+
+        Arene = AreneDetector(QRCode.getPattern(),frame)
+        posArene = Arene.computeArenePos()
+        Arene.display()
+
     return posArene
 
 def main(args):
-    num_cores = multiprocessing.cpu_count()
-    posArene = initPosArene(args)
-    print(posArene)
+    posArene = []
+    if args["detectionArene"] == 'circle':
+        num_cores = 4#multiprocessing.cpu_count()
+        posArene = initPosArene(args,1)
+    elif args["detectionArene"] == 'no':
+        num_cores = 1#multiprocessing.cpu_count()
+        posArene.append([1,(int(1), int(1)),(int(1200), int(1000))])
+
+    elif args["detectionArene"] == 'qr':
+        num_cores = 1#multiprocessing.cpu_count()
+        posArene = initPosArene(args,2)
+        print(posArene)
+
+
+    if posArene == []:
+        num_cores = 1#multiprocessing.cpu_count()
+        posArene.append([1,(int(1), int(1)),(int(1200), int(1000))])
     multiApp = MultiAppManager(args,posArene)
     results = Parallel(n_jobs=num_cores)(delayed(multiApp.run)(roi) for roi in posArene)
 
@@ -416,14 +453,13 @@ if __name__ == '__main__':
                     help="# relative path of the input video to analyse")
     ap.add_argument("-n", "--no-preview", type=str, default=1,
                     help="# desactivate the preview of the results")
-    ap.add_argument("-a", "--nb-arene", type=int, default=4,
-                                        help="# nb of arenes in the set")
     #not used
     ap.add_argument("-o", "--output", type=str, default=const.DIR_WORKSPACE,
                     help="# output directory")
     ap.add_argument("-m", "--magic", type=str, default=0,
                     help="# magic option")
-
+    ap.add_argument("-d", "--detectionArene", type=str, default='no',
+                help="# detection auto des arene no|auto|circle|qrcode")
     args = vars(ap.parse_args())
 
     if args["input_video"] == -1:

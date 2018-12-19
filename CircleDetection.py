@@ -4,7 +4,7 @@ import numpy as np
 from filevideostream import FileVideoStream
 
 def main(argv):
-    
+
     default_file = 'thumb.jpg'
     filename = argv[0] if len(argv) > 0 else default_file
     # Loads an image
@@ -18,8 +18,8 @@ def main(argv):
         print ('Error opening image!')
         print ('Usage: hough_circle.py [image_name -- default ' + default_file + '] \n')
         return -1
-    
-    
+
+
     gray = cv.cvtColor(src, cv.COLOR_BGR2GRAY)
     rows = gray.shape[0]
     circles = cv.HoughCircles(gray, cv.HOUGH_GRADIENT, 1, rows / 8,
@@ -33,8 +33,8 @@ def main(argv):
             cv.rectangle(src,x1,x2,(0,255,0),2)
             str_roi = str(index_roi)
             index_roi = index_roi +1
-            cv.imshow(str_roi, src[x1[1]:x2[1],x1[0]:x2[0]])            
-    
+            cv.imshow(str_roi, src[x1[1]:x2[1],x1[0]:x2[0]])
+
     if circles is not None:
         circles = np.uint16(np.around(circles))
         for i in circles[0, :]:
@@ -45,10 +45,10 @@ def main(argv):
             # circle outline
             radius = i[2]
             cv.circle(src, center, radius, (255, 0, 255), 3)
-    
-    
+
+
     cv.imshow("detected circles", src)
     cv.waitKey(0)
-    
+
 if __name__ == "__main__":
     main(sys.argv[1:])

@@ -25,7 +25,7 @@ else:
 
 
 class FileVideoStream:
-    def __init__(self, path, flag_transform=None, queueSize=128):
+    def __init__(self, path, flag_transform=None, queueSize=64,roi=None):
         self.stream = cv2.VideoCapture(path)
         self.frame_width = int(self.stream.get(cv2.CAP_PROP_FRAME_WIDTH))
         self.frame_height = int(self.stream.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -36,9 +36,19 @@ class FileVideoStream:
             self.mtx = np.load('mtx_file.npy')
             self.dist = np.load('dist_file.npy')
             self.newcameramtx = np.load('newcameramtx_file.npy')
-            self.roi = np.load('roi_file.npy')
             self.mapx,self.mapy = cv2.initUndistortRectifyMap(self.mtx,self.dist,None,self.newcameramtx,(self.frame_width,self.frame_height),5)
-            self.x_roi,self.y_roi,self.w_roi,self.h_roi = self.roi
+        if roi == None:
+                self.roi = np.load('roi_file.npy')
+                self.x_roi,self.y_roi,self.w_roi,self.h_roi = self.roi
+        else:
+                x1 = roi[1]
+                x2 = roi[2]
+                self.x_roi = x1[0]
+                self.y_roi = x1[1]
+                self.w_roi = abs(x2[0]-x1[0])
+                self.h_roi = abs(x2[1]-x1[1])
+
+
 		# initialize the queue used to store frames read from
 		# the video file
         self.Q = Queue(maxsize=queueSize)
@@ -76,7 +86,7 @@ class FileVideoStream:
 				# are usually OpenCV native so release the GIL.
 				#
 				# Really just trying to avoid spinning up additional
-				# native threads and overheads of additional 
+				# native threads and overheads of additional
 				# producer/consumer queues since this one was generally
 				# idle grabbing frames.
                 if self.flag_transform:
@@ -87,7 +97,7 @@ class FileVideoStream:
 				# add the frame to the queue
                 self.Q.put([frame_pos_msec,frame])
             else:
-                time.sleep(0.1)  # Rest for 10ms, we have a full queue  
+                time.sleep(0.1)  # Rest for 10ms, we have a full queue
 
     def read(self):
 		# return next frame in the queue
@@ -95,7 +105,7 @@ class FileVideoStream:
 
 	# Insufficient to have consumer use while(more()) which does
 	# not take into account if the producer has reached end of
-	# file stream. 
+	# file stream.
     def running(self):
         return self.more() or not self.stopped
 
@@ -106,5 +116,3 @@ class FileVideoStream:
     def stop(self):
 		# indicate that the thread should be stopped
         self.stopped = True
-        
-        
