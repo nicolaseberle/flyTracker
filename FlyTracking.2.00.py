@@ -39,7 +39,7 @@ class Parameters(object):
         self.name_foo = []
         self.ofile = []
         self.writer = []
-        for label in range (200):
+        for label in range (20):
             self.name_foo.append(const.DIR_WORKSPACE +  'fly_arene_' + str(num_arene) + '_num_' + str(label) + '.csv')
             self.createFoo(label)
 
@@ -160,7 +160,7 @@ class Manager(object):
                 self.nextFrame(roi)
 
         self.h,self.w = self.frame.shape[:2]
-        print("openVideo" + str(self.w) + ',' + str(self.h))
+
 
     def calibration(self):
         print("calibration")
@@ -268,7 +268,7 @@ class Manager(object):
     def nextFrame(self,roi):
         print("nextFrame : load next frame")
         err = self.fvs.more()
-        time.sleep(0.010)
+        time.sleep(0.020)
         if err !=1:
             return err
 
@@ -367,14 +367,6 @@ class Manager(object):
     def stop(self):
         self.fvs.stop()
 
-root = logging.getLogger()
-root.setLevel(logging.DEBUG)
-
-ch = logging.StreamHandler(sys.stdout)
-#ch.setLevel(logging.DEBUG)
-#formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-#ch.setFormatter(formatter)
-#root.addHandler(ch)
 out = None
 
 class MultiAppManager(object):
@@ -418,6 +410,7 @@ def initPosArene(args,flag):
                 x2 = (int(i[0]*scale+200), int(i[1]*scale+200))
                 str_roi = index_roi
                 posArene.append([index_roi,x1,x2])
+                logging.info('Arene %s x:%d y:%d r:%d',index_roi,x1[0],x1[1],200)
                 index_roi = index_roi +1
     elif flag == 2:
         QRCode = QRCodeDetector(frame)
@@ -425,7 +418,7 @@ def initPosArene(args,flag):
         print(QRCode.getPattern())
         QRCode.display()
         if err > 0:
-            print("erreur detection arene")
+            logging.warning('erreur detection arene')
             exit(0)
 
         Arene = AreneDetector(QRCode.getPattern(),frame)
@@ -442,22 +435,18 @@ def main(args):
     elif args["detectionArene"] == 'no':
         num_cores = 1#multiprocessing.cpu_count()
         posArene.append([1,(int(1), int(1)),(int(1200), int(1000))])
-
     elif args["detectionArene"] == 'qr':
         num_cores = 4#multiprocessing.cpu_count()
         posArene = initPosArene(args,2)
         print(posArene)
-
-
     if posArene == []:
         num_cores = 1#multiprocessing.cpu_count()
         posArene.append([1,(int(1), int(1)),(int(1200), int(1000))])
     multiApp = MultiAppManager(args,posArene)
     results = Parallel(n_jobs=num_cores)(delayed(multiApp.run)(roi) for roi in posArene)
 
-
-
 if __name__ == '__main__':
+
     __version__ = 2.0
     print("FlyTracker version  :" + str(__version__))
     # construct the argument parse and parse the arguments
@@ -473,6 +462,12 @@ if __name__ == '__main__':
     ap.add_argument("-d", "--detectionArene", type=str, default='no',
                 help="# detection auto des arene no|auto|circle|qrcode")
     args = vars(ap.parse_args())
+
+    logging.basicConfig(filename=args['output'] + '/info.log',format='%(asctime)s %(threadName)s %(levelname)-8s %(message)s',level=logging.DEBUG,filemode='w')
+    logging.info('FlyTracker version: %s', str(__version__))
+    logging.info('input video: %s', args['input_video'])
+    logging.info('output directory: %s', args['output'])
+    logging.info('Arena detection: %s', args['detectionArene'])
 
     if args["input_video"] == -1:
         args["input_video"] = filedialog.askopenfilename(initialdir = "/",title = "Select file",filetypes = (("vid","*.h264"),("all files","*.*")))

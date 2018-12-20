@@ -14,6 +14,7 @@ from filevideostream import FileVideoStream
 import cv2
 import imutils
 from pyzbar.pyzbar import ZBarSymbol
+import logging
 
 class AreneDetector(object):
     def __init__(self,pattern,image):
@@ -41,15 +42,39 @@ class AreneDetector(object):
             if dict['data'] == "1":
                 dict['ArenePos'] = np.array([left_x,top_y,width_arene,height_arene ])#x,y,w,h
                 posArene.append([1,(left_x,top_y),(left_x+width_arene,top_y+height_arene)])
+                logging.info('Arene 1 x:%d y:%d w %d h:%d',
+                    left_x,
+                    top_y,
+                    width_arene,
+                    height_arene
+                )
             elif dict['data'] == "2":
                 dict['ArenePos'] = np.array([left_x+width_arene,top_y,width_arene,height_arene ])#x,y,w,h
                 posArene.append([2,(left_x+width_arene,top_y),(left_x+2*width_arene,top_y+height_arene)])
+                logging.info('Arene 2 x:%d y:%d w %d h:%d',
+                    left_x+width_arene,
+                    top_y,
+                    width_arene,
+                    height_arene
+                )
             elif dict['data'] == "3":
                 dict['ArenePos'] = np.array([left_x,top_y+height_arene ,width_arene,height_arene ])#x,y,w,h
                 posArene.append([3,(left_x,top_y+height_arene),(left_x+width_arene,top_y+2*height_arene)])
+                logging.info('Arene 3 x:%d y:%d w %d h:%d',
+                    left_x,
+                    top_y+height_arene,
+                    width_arene,
+                    height_arene
+                )
             elif dict['data'] == "4":
                 dict['ArenePos'] = np.array([left_x+width_arene,top_y+height_arene ,width_arene,height_arene ])#x,y,w,h
                 posArene.append([4,(left_x+width_arene,top_y+height_arene),(left_x+2*width_arene,top_y+2*height_arene)])
+                logging.info('Arene 4 x:%d y:%d w %d h:%d',
+                    left_x+width_arene,
+                    top_y+height_arene,
+                    width_arene,
+                    height_arene
+                )
         return posArene
 
     def display(self):

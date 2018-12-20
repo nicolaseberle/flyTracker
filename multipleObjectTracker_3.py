@@ -10,6 +10,7 @@ from scipy.optimize import linear_sum_assignment
 import tracker_constant as const
 import util
 import csv
+import logging
 
 class MultipleObjectTracker(object):
     def __init__(self):
