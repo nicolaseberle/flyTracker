@@ -37,17 +37,18 @@ class FileVideoStream:
             self.dist = np.load('dist_file.npy')
             self.newcameramtx = np.load('newcameramtx_file.npy')
             self.mapx,self.mapy = cv2.initUndistortRectifyMap(self.mtx,self.dist,None,self.newcameramtx,(self.frame_width,self.frame_height),5)
-        if roi == None:
-                self.roi = np.load('roi_file.npy')
-                self.x_roi,self.y_roi,self.w_roi,self.h_roi = self.roi
-        else:
+			# we load the pre_roi due to undistortion of the image
+            self.roi = np.load('roi_file.npy')
+            self.x_roi,self.y_roi,self.w_roi,self.h_roi = self.roi
+			#
+			#if a roi is defined, we have to consider the previous roi
+        if roi != None:
                 x1 = roi[1]
                 x2 = roi[2]
-                self.x_roi = x1[0]
-                self.y_roi = x1[1]
+                self.x_roi += x1[0]#due to previsou roi
+                self.y_roi += x1[1]#due to previsou roi
                 self.w_roi = abs(x2[0]-x1[0])
                 self.h_roi = abs(x2[1]-x1[1])
-
 
 		# initialize the queue used to store frames read from
 		# the video file

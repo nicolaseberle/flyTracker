@@ -27,6 +27,7 @@ class AreneDetector(object):
              print(dict['pos'].mean(axis=0))
              numArene = np.int(dict['data'])-1
              points[numArene,:] = dict['pos'].mean(axis=0).transpose()
+
         left_x,top_y = np.min(points,axis=0)
         left_x = np.int(left_x)
         top_y = np.int(top_y)
@@ -102,7 +103,7 @@ class QRCodeDetector(object):
 
     def scan(self):
         gray = cv2.cvtColor(self.im, cv2.COLOR_BGR2GRAY)
-        for threshold_i in range(20,130,2):
+        for threshold_i in range(20,140,2):
             ret,thresh2 = cv2.threshold(gray,threshold_i,255,cv2.THRESH_BINARY)
 
             # thresholded = cv2.inRange(gray,(0,0,0),(200,200,200))

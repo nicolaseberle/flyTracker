@@ -148,7 +148,6 @@ class Manager(object):
                 else:
                     self.parameters.flag_init_record = False
                     self.out.release()
-
             else:
                 print(k) # else print its value
 
@@ -161,6 +160,7 @@ class Manager(object):
                 self.nextFrame(roi)
 
         self.h,self.w = self.frame.shape[:2]
+        print("openVideo" + str(self.w) + ',' + str(self.h))
 
     def calibration(self):
         print("calibration")
@@ -380,9 +380,11 @@ class MultiAppManager(object):
         app.process(roi)
         app.stop()
 
-
 def initPosArene(args,flag):
-
+# function to initialize the position of each arena. if no pattern, there are no initialization
+# flag 0: 'no'
+# flag 1: 'circle'
+# flag 2: 'qr'
     posArene = []
     fvs = FileVideoStream(args['input_video'],1).start()
     time.sleep(1.0)
