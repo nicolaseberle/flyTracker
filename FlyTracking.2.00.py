@@ -167,10 +167,21 @@ class Manager(object):
         #Threshold calibration
         self.findThresholdMin()
 
+    def  deleteQRcode(self,thresh_frame):
+        print("delete QR code")
+        marge = 50
+        h,w = thresh_frame.shape[:2]
+        thresh_frame[0:marge,0:marge] = 0
+        thresh_frame[h-marge:,w-marge:] = 0
+        thresh_frame[h-marge:,0:marge] = 0
+        thresh_frame[0:marge, w-marge:,] = 0
+        return thresh_frame
+
     def extractionPlot(self):
         print("extractionPlot")
         gray = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
         ret,thresh2 = cv2.threshold(gray,self.minThreshold,255,cv2.THRESH_BINARY_INV)
+        thresh2 = self.deleteQRcode(thresh2)
         thresh2_dilate = cv2.dilate(thresh2,self.parameters.kernel,iterations = 1)
         thresh2_median  = cv2.medianBlur(thresh2_dilate,3)
 
@@ -433,7 +444,7 @@ def main(args):
         posArene.append([1,(int(1), int(1)),(int(1200), int(1000))])
 
     elif args["detectionArene"] == 'qr':
-        num_cores = 1#multiprocessing.cpu_count()
+        num_cores = 4#multiprocessing.cpu_count()
         posArene = initPosArene(args,2)
         print(posArene)
 
@@ -455,7 +466,6 @@ if __name__ == '__main__':
                     help="# relative path of the input video to analyse")
     ap.add_argument("-n", "--no-preview", type=str, default=1,
                     help="# desactivate the preview of the results")
-    #not used
     ap.add_argument("-o", "--output", type=str, default=const.DIR_WORKSPACE,
                     help="# output directory")
     ap.add_argument("-m", "--magic", type=str, default=0,

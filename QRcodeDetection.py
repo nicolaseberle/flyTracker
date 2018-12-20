@@ -56,7 +56,9 @@ class AreneDetector(object):
         for dict in self.pattern:
            cv2.rectangle(self.im,(dict['ArenePos'][0],dict['ArenePos'][1]),(dict['ArenePos'][0]+dict['ArenePos'][2],dict['ArenePos'][1]+dict['ArenePos'][3])  , (0,255,0), 3)
         cv2.imshow("Results", self.im);
-        cv2.waitKey(0);
+        cv2.waitKey(1000);
+        cv2.destroyWindow("Results");
+
 class QRCodeDetector(object):
     def __init__(self,image):
         self.pattern = [
