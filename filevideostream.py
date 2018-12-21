@@ -40,19 +40,21 @@ class FileVideoStream:
 			# we load the pre_roi due to undistortion of the image
             self.roi = np.load('roi_file.npy')
             self.x_roi,self.y_roi,self.w_roi,self.h_roi = self.roi
-			#
-			#if a roi is defined, we have to consider the previous roi
-        if roi != None:
+            self.uroi = self.roi
+            #if a roi is defined, we have to consider the previous roi
+
+            if roi != None:
                 x1 = roi[1]
                 x2 = roi[2]
-                self.x_roi += x1[0]#due to previsou roi
-                self.y_roi += x1[1]#due to previsou roi
+                self.x_roi += x1[0]#due to previous roi
+                self.y_roi += x1[1]#due to previous roi
                 self.w_roi = abs(x2[0]-x1[0])
                 self.h_roi = abs(x2[1]-x1[1])
 
 		# initialize the queue used to store frames read from
 		# the video file
         self.Q = Queue(maxsize=queueSize)
+
     def start(self):
 		# start a thread to read frames from the file video stream
         t = Thread(target=self.update, args=())
@@ -117,3 +119,12 @@ class FileVideoStream:
     def stop(self):
 		# indicate that the thread should be stopped
         self.stopped = True
+
+    def updateRoi(self,roi):
+        x_uroi,y_uroi,w_uroi,h_uroi = self.uroi
+        x1 = roi[1]
+        x2 = roi[2]
+        self.x_roi = x_uroi + x1[0]#due to previous roi
+        self.y_roi = y_uroi + x1[1]#due to previous roi
+        self.w_roi = abs(x2[0]-x1[0])
+        self.h_roi = abs(x2[1]-x1[1])

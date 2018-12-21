@@ -80,36 +80,38 @@ class Measurement(object):
             self.parameters.writer[track.label].writerow([date,numFrame , track.plot[0][0],track.plot[0][1],track.speed[0][0], track.speed[0][1],track.flag_touch ] )
 
 class Manager(object):
-    def __init__(self,args,num_arene):
+    def __init__(self,args,roi):
         self.frame_full = None
         self.frame_date = None
         self.numFirstFrame = 30
         self.numCurrentFrame = 0
         self.res = pd.DataFrame()
-        self.parameters = Parameters(args,num_arene)
+        self.parameters = Parameters(args,roi[0])
         self.measurement = Measurement(self.parameters)
-        self.numArene = num_arene
+        self.roi = roi
+        self.numArene = roi[0]
         self.initDisplay = 0
         if self.parameters.magic == "1":
             self.mosaic = GenMosaic()
 
-    def process(self,roi):
-
-        num_arene = roi[0]
-
+    def process(self):
         self.calibration()
         self.initTracker()
-        while(self.nextFrame(roi)):
+        while(self.nextFrame()):
             self.extractionPlot()
             self.track()
             self.save()
             self.display()
-
+            #self.signalToUpdatePosArene()
             if self.userControl():
                break
 
+    def signalToUpdatePosArene(self):
+        if self.numCurrentFrame%100 == 0:
+            self.fvs.updateRoi(self.roi)
+            self.initPosArene()
+
     def save(self):
-        print("save Result")
         #self.measurement.saveMeasurementDF(self.tracker,self.numCurrentFrame,self.frame_date)
         self.measurement.saveMeasurementCSV(self.tracker,self.numCurrentFrame,self.frame_date)
 
@@ -151,13 +153,13 @@ class Manager(object):
             else:
                 print(k) # else print its value
 
-    def openVideo(self,roi):
+    def openVideo(self):
         print("openVideo")
-        self.fvs = FileVideoStream(self.parameters.videofilename,1,64,roi).start()
+        self.fvs = FileVideoStream(self.parameters.videofilename,1,64,self.roi).start()
         time.sleep(1.0)
         if self.numFirstFrame>0:
             for counter in range(self.numFirstFrame):
-                self.nextFrame(roi)
+                self.nextFrame()
 
         self.h,self.w = self.frame.shape[:2]
 
@@ -265,7 +267,7 @@ class Manager(object):
         print("tracker")
         self.tracker.update_tracks(self.pos_t)
 
-    def nextFrame(self,roi):
+    def nextFrame(self):
         print("nextFrame : load next frame")
         err = self.fvs.more()
         time.sleep(0.020)
@@ -273,9 +275,6 @@ class Manager(object):
             return err
 
         self.frame_date,self.frame = self.fvs.read()
-        x1 = roi[1]
-        x2 = roi[2]
-        #self.frame = self.frame[x1[1]:x2[1],x1[0]:x2[0],:]
         self.numCurrentFrame += 1
         return err
 
@@ -367,6 +366,31 @@ class Manager(object):
     def stop(self):
         self.fvs.stop()
 
+    def initPosArene(self):
+        posArene = []
+        height,width,channel = self.frame.shape
+        scale = 2
+        src = cv2.resize(self.frame,(int(width/scale), int(height/scale)), interpolation = cv2.INTER_LINEAR)
+        gray = cv2.cvtColor(src, cv2.COLOR_BGR2GRAY)
+        rows = gray.shape[0]
+        circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT, 1, rows / 8,
+                               param1=20, param2=50,
+                               minRadius=int(80/scale), maxRadius=int(140/scale))
+        index_roi = 1
+        for i in circles[0, :]:
+            x1 = (int(i[0]*scale-200), int(i[1]*scale-200))
+            x2 = (int(i[0]*scale+200), int(i[1]*scale+200))
+            str_roi = index_roi
+            posArene.append([index_roi,x1,x2])
+            logging.info('Arene %s x:%d y:%d r:%d',index_roi,x1[0],x1[1],200)
+            index_roi = index_roi +1
+            # draw the center of the circle
+            cv2.circle(src,(i[0],i[1]),2,(0,255,0),3)
+            cv2.imshow('detected circles',src)
+            cv2.waitKey(0)
+
+        return posArene
+
 out = None
 
 class MultiAppManager(object):
@@ -376,18 +400,16 @@ class MultiAppManager(object):
         self.posArene = posArene
 
     def run(self,roi):
-        num_arene = roi[0]
-        print(num_arene)
-        app = Manager(self.args,num_arene)
-        app.openVideo(roi)
-        app.process(roi)
+        app = Manager(self.args,roi)
+        app.openVideo()
+        app.process()
         app.stop()
 
 def initPosArene(args,flag):
 # function to initialize the position of each arena. if no pattern, there are no initialization
 # flag 0: 'no'
 # flag 1: 'circle'
-# flag 2: 'qr'
+# flag 2: 'qrcode'
     posArene = []
     fvs = FileVideoStream(args['input_video'],1).start()
     time.sleep(1.0)
@@ -412,6 +434,7 @@ def initPosArene(args,flag):
                 posArene.append([index_roi,x1,x2])
                 logging.info('Arene %s x:%d y:%d r:%d',index_roi,x1[0],x1[1],200)
                 index_roi = index_roi +1
+
     elif flag == 2:
         QRCode = QRCodeDetector(frame)
         err = QRCode.scan()
@@ -435,7 +458,7 @@ def main(args):
     elif args["detectionArene"] == 'no':
         num_cores = 1#multiprocessing.cpu_count()
         posArene.append([1,(int(1), int(1)),(int(1200), int(1000))])
-    elif args["detectionArene"] == 'qr':
+    elif args["detectionArene"] == 'qrcode':
         num_cores = 4#multiprocessing.cpu_count()
         posArene = initPosArene(args,2)
         print(posArene)
@@ -465,13 +488,16 @@ if __name__ == '__main__':
 
     logging.basicConfig(filename=args['output'] + '/info.log',format='%(asctime)s %(threadName)s %(levelname)-8s %(message)s',level=logging.DEBUG,filemode='w')
     logging.info('FlyTracker version: %s', str(__version__))
-    logging.info('input video: %s', args['input_video'])
+    logging.info('input video -i: %s', args['input_video'])
     logging.info('output directory: %s', args['output'])
     logging.info('Arena detection: %s', args['detectionArene'])
 
     if args["input_video"] == -1:
         args["input_video"] = filedialog.askopenfilename(initialdir = "/",title = "Select file",filetypes = (("vid","*.h264"),("all files","*.*")))
+        logging.info('input video dial: %s', args['input_video'])
         if len(args["input_video"])==0:
             print("no input file -> no analysis")
+            logging.warning("no input file -> no analysis")
             exit(0)
+
     main(args)
