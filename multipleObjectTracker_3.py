@@ -43,17 +43,19 @@ class MultipleObjectTracker(object):
 
         self.tracks = [t for t in self.tracks if t.delete_me is False]
 
-    def update_tracks(self, current_plot):
+    def update_tracks(self, current_plot, current_date):
         plots = []
         for _plot in current_plot:
                 p = Plot()
-                p.add_to_plot(_plot)
+                p.add_to_plot(_plot,current_date)
                 plots.append(p)
         # if there are no tracks yet, all detections are new tracks
         if len(self.tracks) == 0:
             for _plot in current_plot:
                 t = Track(self.indiceTrack)
-                t.add_to_track(_plot)
+                p_ = Plot()
+                p_.add_to_plot(_plot,current_date)
+                t.add_to_track(p_)
                 self.tracks.append(t)
                 self.indiceTrack += 1
             return True
@@ -97,7 +99,7 @@ class MultipleObjectTracker(object):
             if dists[row, col] != 1e6:
                 self.tracks[row].has_match = True
                 plots[col].has_match = True
-                self.tracks[row].add_to_track(plots[col].plot)
+                self.tracks[row].add_to_track(plots[col])
                 self.tracks[row].num_misses = 0
                 self.tracks[row].area = plots[col].plot[0][3]
                 self.tracks[row].flag_cluster = False
@@ -112,7 +114,7 @@ class MultipleObjectTracker(object):
                     print("create new tracks from unassigned plot ")
 
                 new_track = Track(self.indiceTrack)
-                new_track.add_to_track(_plot.plot)
+                new_track.add_to_track(_plot)
                 self.tracks.append(new_track)
                 self.indiceTrack += 1
 
@@ -172,7 +174,7 @@ class MultipleObjectTracker(object):
                         p_[0][:2] = p[col][:2]
                         p_[0][3] = p[col][2]
                         p__ = Plot()
-                        p__.add_to_plot(p_)
+                        p__.add_to_plot(p_,current_date)
 
                         if const.VERBOSE_FULL is True:
                             print(row,col,' track ' + str(liste_track_no_assigned[row].label) + ' ' + str(liste_track_no_assigned[row].old_plot[0][0]) + ','+ str(liste_track_no_assigned[row].old_plot[0][1]) + ' -> ' + str(p_[0][0]) + ',' + str(p_[0][1]))
@@ -182,7 +184,7 @@ class MultipleObjectTracker(object):
                         #liste_track_no_assigned[row].plot = liste_track_no_assigned[row].old_plot
                         liste_track_no_assigned[row].num_misses = 0
                         liste_track_no_assigned[row].flag_cluster = True
-                        liste_track_no_assigned[row].add_to_track(p__.plot)
+                        liste_track_no_assigned[row].add_to_track(p__)
                         liste_track_no_assigned[row].updateStatus()
                         liste_track_no_assigned[row].area = p_[0][3]
 
@@ -207,9 +209,11 @@ class Plot(object):
     def __init__(self):
         self.has_match = False
         self.plot = np.empty((0,1,51), dtype='float32')#pos_x,pos_y,orientation_rad,surface_pixel
+        self.date = None
 
-    def add_to_plot(self,_plot):
+    def add_to_plot(self, _plot, _date):
         self.plot = _plot
+        self.date = _date
 
 class Track(object):
     def __init__(self,numPiste):
@@ -230,6 +234,8 @@ class Track(object):
         self.area = -1#NOT COMPUTE DURING INIT
         self.flag_cluster = False
         self.flag_touch = 0
+        self.old_date = None
+        self.current_date = None
 
 
     def createFoo(self):
@@ -244,12 +250,13 @@ class Track(object):
             self.old_old_plot = self.old_plot
         if self.nbplot > 0 :
             self.old_plot = self.plot
+            self.old_date = self.current_date
 
-
-        self.plot = _plot
+        self.plot = _plot.plot
+        self.current_date = _plot.date
         #self.listPlot = np.concatenate((self.listPlot,self.plot))
 
-        if(self.nbplot !=0):
+        if(self.nbplot > 0):
             self.compute_speed()
 
 
@@ -283,10 +290,13 @@ class Track(object):
         self.roi_of_search = const.MAX_PIXELS_DIST_TRACK
 
     def compute_speed(self):
-        if self.nbplot  > 1:
-            dt = 1
-            self.speed = (self.plot - self.old_plot)/dt
+        if self.nbplot  > 1 and self.old_date != self.current_date:
+            dt = (self.current_date - self.old_date)/1000 # millisecond -> second conversion
+        else:
+            dt = 1/const.FPS # millisecond -> second conversion
             #self.listSpeed = np.concatenate((self.listSpeed,self.speed))
+
+        self.speed = (self.plot - self.old_plot)/dt
 
     def get_length(self):
         return self.nbplot

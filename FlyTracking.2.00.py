@@ -293,7 +293,7 @@ class Manager(object):
 
     def track(self):
         print("tracker")
-        self.tracker.update_tracks(self.pos_t)
+        self.tracker.update_tracks(self.pos_t,self.frame_date)
 
     def nextFrame(self):
         print("nextFrame : load next frame")
