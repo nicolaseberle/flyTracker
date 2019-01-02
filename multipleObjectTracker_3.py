@@ -10,6 +10,7 @@ from scipy.optimize import linear_sum_assignment
 import tracker_constant as const
 import util
 import csv
+import cv2
 import logging
 
 class MultipleObjectTracker(object):
@@ -19,6 +20,7 @@ class MultipleObjectTracker(object):
         self.indiceFrame = 0
 
     def __delete_duplicate_tracks(self):
+
         # check if tracks 'heads' are identical
         for i in np.arange(len(self.tracks)):
             track1 = self.tracks[i]
@@ -169,6 +171,8 @@ class MultipleObjectTracker(object):
                         p_ = np.copy(liste_track_no_assigned[row].plot)
                         p_[0][:2] = p[col][:2]
                         p_[0][3] = p[col][2]
+                        p__ = Plot()
+                        p__.add_to_plot(p_)
 
                         if const.VERBOSE_FULL is True:
                             print(row,col,' track ' + str(liste_track_no_assigned[row].label) + ' ' + str(liste_track_no_assigned[row].old_plot[0][0]) + ','+ str(liste_track_no_assigned[row].old_plot[0][1]) + ' -> ' + str(p_[0][0]) + ',' + str(p_[0][1]))
@@ -178,7 +182,7 @@ class MultipleObjectTracker(object):
                         #liste_track_no_assigned[row].plot = liste_track_no_assigned[row].old_plot
                         liste_track_no_assigned[row].num_misses = 0
                         liste_track_no_assigned[row].flag_cluster = True
-                        liste_track_no_assigned[row].add_to_track(p_)
+                        liste_track_no_assigned[row].add_to_track(p__.plot)
                         liste_track_no_assigned[row].updateStatus()
                         liste_track_no_assigned[row].area = p_[0][3]
 
@@ -232,7 +236,7 @@ class Track(object):
         self.idx = 0
         self.ofile = open(str(self.name_foo),"w")
         self.writer = csv.writer(self.ofile, delimiter=':')
-        self.writer.writerow(["numFrame","X","Y","VX","VY",'T/A'])#Alone or Touch
+        self.writer.writerow(["Date(ms)","numFrame","X (in pixel)","Y (in pixel)","VX (in pixel/s)","VY (in pixel/s)",'T/A'])#Alone or Touch
 
 
     def add_to_track(self,_plot):
@@ -247,6 +251,7 @@ class Track(object):
 
         if(self.nbplot !=0):
             self.compute_speed()
+
 
         if(self.nbplot > const.NBFRAME_BEFORE_RECORDING):
             if self.init_once is False:
@@ -279,7 +284,7 @@ class Track(object):
 
     def compute_speed(self):
         if self.nbplot  > 1:
-            dt = 1/const.FPS
+            dt = 1
             self.speed = (self.plot - self.old_plot)/dt
             #self.listSpeed = np.concatenate((self.listSpeed,self.speed))
 

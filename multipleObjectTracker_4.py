@@ -185,9 +185,6 @@ class MultipleObjectTracker(object):
                         liste_track_no_assigned[row].updateStatus()
                         liste_track_no_assigned[row].area = p_[0][3]
 
-
-
-
         # keep track of how many times a track has gone unassigned
         for t in self.tracks:
             if t.has_match is False and self.indiceFrame>1 and t.is_singular() == False:
@@ -301,26 +298,4 @@ class Track(object):
     #def brief(self,image):
     #    self.hist = self.hog.compute(image,self.winStride,self.padding,self.locations)
 
-    def compute_brief_ORB(self, img,list_pts):
-        kpts = []
-        kpts.extend([cv2.KeyPoint(pt[0], pt[1], 1) for pt in list_pts])
-        self.kp, self.descr = self.orb.compute(img, kpts)
-
-    def init_brief(self):
-        self.winSize = (32,32)
-        self.blockSize = (16,16)
-        self.blockStride = (8,8)
-        self.cellSize = (8,8)
-        self.nbins = 9
-        self.derivAperture = 1
-        self.winSigma = 4.
-        self.histogramNormType = 0
-        self.L2HysThreshold = 2.0000000000000001e-01
-        self.gammaCorrection = 0
-        self.nlevels = 64
-        #self.hog = cv2.HOGDescriptor(self.winSize,self.blockSize,self.blockStride,self.cellSize,self.nbins,self.derivAperture,self.winSigma,
-        #                self.histogramNormType,self.L2HysThreshold,self.gammaCorrection,self.nlevels)
-        self.orb = cv2.ORB()
-        self.winStride = (8,8)
-        self.padding = (8,8)
-        self.locations = ((10,20),)
+    

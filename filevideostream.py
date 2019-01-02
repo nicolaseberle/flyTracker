@@ -12,6 +12,7 @@ import sys
 import cv2
 import time
 import numpy as np
+import logging
 
 # import the Queue class from Python 3
 if sys.version_info >= (3, 0):

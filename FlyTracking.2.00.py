@@ -9,8 +9,7 @@ import tracker_constant as const
 import argparse
 import time
 import csv
-from QRcodeDetection import QRCodeDetector
-from QRcodeDetection import AreneDetector
+from QRcodeDetection import QRCodeDetector,AreneDetector
 
 from tkinter import filedialog
 import pandas as pd
@@ -36,12 +35,13 @@ class Parameters(object):
         self.magic = args['magic']
         self.videofilename = args['input_video']
         self.display = args['no_preview']
+        self.num_arene = num_arene
         self.name_foo = []
         self.ofile = []
         self.writer = []
-        for label in range (20):
-            self.name_foo.append(const.DIR_WORKSPACE +  'fly_arene_' + str(num_arene) + '_num_' + str(label) + '.csv')
-            self.createFoo(label)
+        #for label in range (20):
+        #    self.name_foo.append(const.DIR_WORKSPACE +  'fly_arene_' + str(num_arene) + '_num_' + str(label) + '.csv')
+        #    self.createFoo(label)
 
     def set_init_once(self,state):
         self.init_once = state
@@ -49,7 +49,7 @@ class Parameters(object):
     def createFoo(self,label):
         self.ofile.append(open(str(self.name_foo[label]),"w"))
         self.writer.append( csv.writer(self.ofile[label], delimiter=':'))
-        self.writer[label].writerow(["numFrame","X","Y","VX","VY",'T/A'])#Alone or Touch
+        self.writer[label].writerow(["Date(ms)","numFrame","X (in pixel)","Y (in pixel)","VX (in pixel/s)","VY (in pixel/s)",'Touch (1) / Alone (0)'])#Alone or Touch
 
 class Measurement(object):
     def __init__(self,param):
@@ -77,7 +77,14 @@ class Measurement(object):
 
     def saveMeasurementCSV(self,tracker,numFrame,date):
         for i, track in enumerate(tracker.tracks):
-            self.parameters.writer[track.label].writerow([date,numFrame , track.plot[0][0],track.plot[0][1],track.speed[0][0], track.speed[0][1],track.flag_touch ] )
+            if len(self.parameters.writer)>track.label:
+                self.parameters.writer[track.label].writerow([date,numFrame , track.plot[0][0],track.plot[0][1],track.speed[0][0], track.speed[0][1],track.flag_touch ] )
+            else:
+                self.parameters.name_foo.append(const.DIR_WORKSPACE +  'fly_arene_' + str(self.parameters.num_arene) + '_num_' + str(track.label) + '.csv')
+                self.parameters.ofile.append(open(str(self.parameters.name_foo[track.label]),"w"))
+                self.parameters.writer.append(csv.writer(self.parameters.ofile[track.label], delimiter=':'))
+                self.parameters.writer[track.label].writerow(["Date(ms)","numFrame","X (in pixel)","Y (in pixel)","VX (in pixel/s)","VY (in pixel/s)",'Touch (1) / Alone (0)'])#Alone or Touch
+                self.parameters.writer[track.label].writerow([date,numFrame , track.plot[0][0],track.plot[0][1],track.speed[0][0], track.speed[0][1],track.flag_touch ] )
 
 class Manager(object):
     def __init__(self,args,roi):
@@ -193,6 +200,7 @@ class Manager(object):
         im2, contours, hierarchy = cv2.findContours(thresh2_median,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
 
         self.pos_t = np.empty((0,1,51), dtype='float32')
+        self.init_brief()
 
         #For each blob/contour
         for cnt in contours:
@@ -259,6 +267,26 @@ class Manager(object):
             self.pos_t = np.concatenate((self.pos_t,current_plot))
 
 
+        self.compute_brief_ORB(gray,self.pos_t)
+    #def brief(self,image):
+    #    self.hist = self.hog.compute(image,self.winStride,self.padding,self.locations)
+
+    def compute_brief_ORB(self, img,list_pts):
+        kpts = []
+        kpts.extend([cv2.KeyPoint(int(pt[0][0]), int(pt[0][1]), 1) for pt in list_pts])
+        self.kp, self.descr = self.orb.compute(img, kpts)
+        #print(self.descr)
+
+    def findMatches(self):
+        self.matches = self.matcher.match(self.old_descr, self.descr)
+
+    def init_brief(self):
+        self.orb = cv2.ORB_create()
+        self.init_matcher()
+
+    def init_matcher(self):
+        self.matcher = cv2.BFMatcher(cv2.NORM_L2, crossCheck=True)
+
     def initTracker(self):
         print("initTracker")
         self.tracker = MultipleObjectTracker()
@@ -291,9 +319,9 @@ class Manager(object):
         for i, track in enumerate(self.tracker.tracks):
             if track.has_match is True:
                 print("ARENE " + str(self.numArene) + " PISTE "  + str(i) + " label : " + str(track.label)  + " X: " + str(track.plot[0][0]) + " Y: " + str(track.plot[0][1]) + " Theta: " + str(track.plot[0][2]) + " S: " + str(track.plot[0][3]))
-
                 self.mask = cv2.line(self.mask, (int(track.old_plot[0][0]),int(track.old_plot[0][1])),(int(track.plot[0][0]),int(track.plot[0][1])), self.parameters.color[track.label].tolist(), 1)
                 cv2.putText(self.frame,str(track.label),(int(track.plot[0][0]),int(track.plot[0][1])), self.parameters.font, 0.4,(255,0,0),1,cv2.LINE_AA)
+
         cv2.putText(self.frame,'frame ' + str(self.numCurrentFrame),(10,20), self.parameters.font, 0.4,(255,0,0),1,cv2.LINE_AA)
         cv2.putText(self.frame,'nb tracks ' + str(len(self.tracker.tracks)),(10,40), self.parameters.font, 0.4,(255,0,0),1,cv2.LINE_AA)
         if self.parameters.flag_hide_tracks==True:
@@ -416,7 +444,8 @@ def initPosArene(args,flag):
     err = fvs.more()
     date,frame = fvs.read()
     height,width,channel = frame.shape
-
+    # automatic extraction of arean circles
+    # TO DO - param1 param2 have to be defined automatically
     if flag == 1:
         scale = 2.5
         src = cv2.resize(frame,(int(width/scale), int(height/scale)), interpolation = cv2.INTER_LINEAR)
@@ -434,7 +463,7 @@ def initPosArene(args,flag):
                 posArene.append([index_roi,x1,x2])
                 logging.info('Arene %s x:%d y:%d r:%d',index_roi,x1[0],x1[1],200)
                 index_roi = index_roi +1
-
+    #automatic extraction of the arena thanks to QRCode
     elif flag == 2:
         QRCode = QRCodeDetector(frame)
         err = QRCode.scan()
@@ -458,10 +487,18 @@ def main(args):
     elif args["detectionArene"] == 'no':
         num_cores = 1#multiprocessing.cpu_count()
         posArene.append([1,(int(1), int(1)),(int(1200), int(1000))])
+        #open one frame -> select manually arena
+        #
+        #TO TO
+        #
     elif args["detectionArene"] == 'qrcode':
         num_cores = 4#multiprocessing.cpu_count()
         posArene = initPosArene(args,2)
         print(posArene)
+    else:
+        num_cores = 1#multiprocessing.cpu_count()
+        posArene.append([1,(int(1), int(1)),(int(1200), int(1000))])
+
     if posArene == []:
         num_cores = 1#multiprocessing.cpu_count()
         posArene.append([1,(int(1), int(1)),(int(1200), int(1000))])
@@ -482,7 +519,7 @@ if __name__ == '__main__':
                     help="# output directory")
     ap.add_argument("-m", "--magic", type=str, default=0,
                     help="# magic option")
-    ap.add_argument("-d", "--detectionArene", type=str, default='no',
+    ap.add_argument("-d", "--detectionArene", type=str, default='qrcode',
                 help="# detection auto des arene no|auto|circle|qrcode")
     args = vars(ap.parse_args())
 
