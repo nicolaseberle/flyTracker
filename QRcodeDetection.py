@@ -130,7 +130,7 @@ class QRCodeDetector(object):
 
     def scan(self):
         gray = cv2.cvtColor(self.im, cv2.COLOR_BGR2GRAY)
-        for threshold_i in range(20,140,2):
+        for threshold_i in range(20,200,2):
             ret,thresh2 = cv2.threshold(gray,threshold_i,255,cv2.THRESH_BINARY)
 
             # thresholded = cv2.inRange(gray,(0,0,0),(200,200,200))

@@ -174,6 +174,7 @@ class Manager(object):
     def calibration(self):
         print("calibration")
         #Threshold calibration
+        #self.findThresholdMin_2()
         self.findThresholdMin()
 
     def  deleteQRcode(self,thresh_frame):
@@ -275,6 +276,8 @@ class Manager(object):
         kpts = []
         kpts.extend([cv2.KeyPoint(int(pt[0][0]), int(pt[0][1]), 1) for pt in list_pts])
         self.kp, self.descr = self.orb.compute(img, kpts)
+        #print(kpts,self.kp)
+        #print(list_pts.shape,len(kpts),len(self.kp),self.descr.shape)
         #print(self.descr)
 
     def findMatches(self):
@@ -341,10 +344,26 @@ class Manager(object):
         if self.parameters.flag_init_record == True:
             self.out.write(self.img)
 
+    def findThresholdMin_2(self):
+        gray = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
+        surface = []
+        for iter_thres in range(0,255):
+            ret,mask_thresh = cv2.threshold(gray,iter_thres,255,cv2.THRESH_BINARY_INV)
+            pixelpointsCV2 = cv2.findNonZero(mask_thresh)
+            Z = np.float32(pixelpointsCV2 )
+
+            if (np.isnan(Z)).any():
+                surface.append(0)
+            else:
+                surface.append(len(Z))
+
+        print(surface)
+
+
     def findThresholdMin(self):
         # Setup SimpleBlobDetector parameters.
         params = cv2.SimpleBlobDetector_Params()
-        marge  = 10
+        marge  = 5
 
         # Change thresholds
         params.minThreshold = 10;
@@ -371,20 +390,22 @@ class Manager(object):
         #use blob detector to establish the extraction threshold
         detector = cv2.SimpleBlobDetector_create(params)
         gray = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
+        gray = self.deleteQRcode(gray)
+
         # Detect blobs.
         ex_mat = []
         keypoints = detector.detect(gray)
-        print(keypoints)
+        #print(keypoints)
         height,width = gray.shape
         if len(keypoints) != 0:
             for kpoint in keypoints:
                 x = int(kpoint.pt[0])
                 y = int(kpoint.pt[1])
-                if x > marge and y > marge and x < width - marge and y < height - marge:
-                    ex_mat.append(np.reshape(gray[y-marge:y+marge,x-marge:x+marge],(1,400)))
+                if x > 2*marge and y > 2*marge and x < width - 2*marge and y < height - 2*marge:
+                    ex_mat.append(np.reshape(gray[y-marge:y+marge,x-marge:x+marge],(1,100)))
 
             print("blob statistics:",np.median(ex_mat),np.mean(ex_mat),np.percentile(ex_mat,20),np.std(ex_mat))
-            self.minThreshold = np.median(ex_mat)-2*np.std(ex_mat)
+            self.minThreshold = np.median(ex_mat)-np.std(ex_mat)
             print("minThreshold : ",self.minThreshold)
         else:
             print("no blob has been found")

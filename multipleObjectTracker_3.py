@@ -45,6 +45,7 @@ class MultipleObjectTracker(object):
 
     def update_tracks(self, current_plot, current_date):
         plots = []
+        print(current_plot.shape)
         for _plot in current_plot:
                 p = Plot()
                 p.add_to_plot(_plot,current_date)
