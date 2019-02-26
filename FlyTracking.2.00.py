@@ -500,14 +500,15 @@ def initPosArene(args,flag):
     #manual extraction of arena
     elif flag == 3:
         manualPosArena = ManualDrawArena(frame)
+        print(manualPosArena.getPattern())
         err = manualPosArena.draw()
 
         if err > 0:
             logging.warning('error during drawing process ')
             exit(0)
-
         Arene = AreneDetector(manualPosArena.getPattern(),frame)
-
+        posArene = Arene.computeArenePos()
+        Arene.display()
     return posArene
 
 def main(args):

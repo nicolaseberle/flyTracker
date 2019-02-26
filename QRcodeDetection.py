@@ -214,8 +214,14 @@ class ManualDrawArena(object):
 
             for dict in self.pattern:
                 if dict['data'] == str(self.current_arena):
-                    dict['ArenePos'] = np.array([ self.refPt[0][0], self.refPt[1][1],np.abs(self.refPt[0][0] - self.refPt[1][0]),np.abs(self.refPt[1][0] -  self.refPt[1][1])  ])#x,y,w,h
+                    w = np.abs(self.refPt[0][0]-self.refPt[1][0])
+                    h = np.abs(self.refPt[0][1]-self.refPt[1][1])
                     dict['flag'] = '1'
+                    dict['pos'] = np.array([[self.refPt[0][0], self.refPt[0][1]],
+                                            [self.refPt[0][0]+ w,self.refPt[0][1]],
+                                            [self.refPt[0][0] ,self.refPt[0][1] +h],
+                                            [self.refPt[0][0]+w,self.refPt[0][1]+h]])
+
 
             self.current_arena = self.current_arena + 1
             cv2.imshow("DrawArena", self.im)
