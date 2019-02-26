@@ -95,7 +95,6 @@ class QRCodeDetector(object):
         self.im = image
         self.decodedObjects = None
 
-
     def findAndReplace(self, obj):
         for dict in self.pattern:
             if dict['data'] == np.str(np.int8(obj.data)):
@@ -165,6 +164,61 @@ class QRCodeDetector(object):
         # Display results
         cv2.imshow("Results", self.im);
         cv2.waitKey(0);
+
+class ManualDrawArena(object):
+    def __init__(self,image):
+        self.pattern = [
+              {"name": "QRcode_1","data":"1", "flag": "0","pos":[],"ArenePos":[]},
+              {"name": "QRcode_2","data":"2", "flag": "0","pos":[],"ArenePos":[]},
+              {"name": "QRcode_3","data":"3", "flag": "0","pos":[],"ArenePos":[]},
+              {"name": "QRcode_4","data":"4", "flag": "0","pos":[],"ArenePos":[]}
+            ]
+        self.im = image
+        self.decodedObjects = None
+        self.refPt = []
+        self.cropping = False
+        self.current_arena = 1
+
+    def getPattern(self):
+        return self.pattern
+
+    def draw(self):
+        cv2.namedWindow("DrawArena")
+        cv2.setMouseCallback("DrawArena", self.click_and_draw)
+        while True:
+            cv2.imshow("DrawArena", self.im)
+            key = cv2.waitKey(1) & 0xFF
+            # if the 'c' key is pressed, break from the loop
+            if key == ord("c"):
+                break
+        return 0
+
+    def click_and_draw(self,event, x, y, flags, param):
+    	# grab references to the global variables
+
+    	# if the left mouse button was clicked, record the starting
+    	# (x, y) coordinates and indicate that cropping is being
+    	# performed
+    	if event == cv2.EVENT_LBUTTONDOWN:
+    		self.refPt = [(x, y)]
+    		self.cropping = True
+
+    	# check to see if the left mouse button was released
+    	elif event == cv2.EVENT_LBUTTONUP:
+    		# record the ending (x, y) coordinates and indicate that
+    		# the cropping operation is finished
+            self.refPt.append((x, y))
+            self.cropping = False
+            # draw a rectangle around the region of interest
+            cv2.rectangle(self.im, self.refPt[0], self.refPt[1], (0, 255, 0), 2)
+
+            for dict in self.pattern:
+                if dict['data'] == str(self.current_arena):
+                    dict['ArenePos'] = np.array([ self.refPt[0][0], self.refPt[1][1],np.abs(self.refPt[0][0] - self.refPt[1][0]),np.abs(self.refPt[1][0] -  self.refPt[1][1])  ])#x,y,w,h
+                    dict['flag'] = '1'
+
+            self.current_arena = self.current_arena + 1
+            cv2.imshow("DrawArena", self.im)
 
 
 # Main

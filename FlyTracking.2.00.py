@@ -9,7 +9,7 @@ import tracker_constant as const
 import argparse
 import time
 import csv
-from QRcodeDetection import QRCodeDetector,AreneDetector
+from QRcodeDetection import QRCodeDetector,AreneDetector,ManualDrawArena
 
 from tkinter import filedialog
 import pandas as pd
@@ -491,12 +491,22 @@ def initPosArene(args,flag):
         print(QRCode.getPattern())
         QRCode.display()
         if err > 0:
-            logging.warning('erreur detection arene')
+            logging.warning('error during detection arena phase')
             exit(0)
 
         Arene = AreneDetector(QRCode.getPattern(),frame)
         posArene = Arene.computeArenePos()
         Arene.display()
+    #manual extraction of arena
+    elif flag == 3:
+        manualPosArena = ManualDrawArena(frame)
+        err = manualPosArena.draw()
+
+        if err > 0:
+            logging.warning('error during drawing process ')
+            exit(0)
+
+        Arene = AreneDetector(manualPosArena.getPattern(),frame)
 
     return posArene
 
@@ -515,6 +525,10 @@ def main(args):
     elif args["detectionArene"] == 'qrcode':
         num_cores = 4#multiprocessing.cpu_count()
         posArene = initPosArene(args,2)
+        print(posArene)
+    elif args["detectionArene"] == 'manual':
+        num_cores = 4#multiprocessing.cpu_count()
+        posArene = initPosArene(args,3)
         print(posArene)
     else:
         num_cores = 1#multiprocessing.cpu_count()
