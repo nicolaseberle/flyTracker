@@ -327,11 +327,13 @@ class Manager(object):
 
         cv2.putText(self.frame,'frame ' + str(self.numCurrentFrame),(10,20), self.parameters.font, 0.4,(255,0,0),1,cv2.LINE_AA)
         cv2.putText(self.frame,'nb tracks ' + str(len(self.tracker.tracks)),(10,40), self.parameters.font, 0.4,(255,0,0),1,cv2.LINE_AA)
+        cv2.putText(self.frame,'Threshold  %3d' % (self.minThreshold),(10,60), self.parameters.font, 0.4,(255,0,0),1,cv2.LINE_AA)
+
         if self.parameters.flag_hide_tracks==True:
-            cv2.putText(self.frame,"fade out activate",(10,60), self.parameters.font, 0.4,(255,0,0),1,cv2.LINE_AA)
+            cv2.putText(self.frame,"fade out activate",(10,80), self.parameters.font, 0.4,(255,0,0),1,cv2.LINE_AA)
 
         if self.parameters.flag_init_record == True:
-            cv2.putText(self.frame,"save video",(10,80), self.parameters.font, 0.4,(255,0,0),1,cv2.LINE_AA)
+            cv2.putText(self.frame,"save video",(10,100), self.parameters.font, 0.4,(255,0,0),1,cv2.LINE_AA)
 
         self.img = cv2.addWeighted(self.mask, 1, self.frame, 1, 0)
         cv2.addWeighted(self.mask, self.parameters.alpha_1, self.mask, 0.5, self.parameters.alpha_2 ,self.mask)
@@ -367,7 +369,7 @@ class Manager(object):
 
         # Change thresholds
         params.minThreshold = 10;
-        params.maxThreshold = 80;
+        params.maxThreshold = 150;
 
         # Filter by Area.
         params.filterByArea = True
@@ -404,8 +406,9 @@ class Manager(object):
                 if x > 2*marge and y > 2*marge and x < width - 2*marge and y < height - 2*marge:
                     ex_mat.append(np.reshape(gray[y-marge:y+marge,x-marge:x+marge],(1,100)))
 
-            print("blob statistics:",np.median(ex_mat),np.mean(ex_mat),np.percentile(ex_mat,20),np.std(ex_mat))
-            self.minThreshold = np.median(ex_mat)-np.std(ex_mat)
+
+            print('blob stat:: median: %3.0f mean: %3.0f percentile_20: %3.0f std:%3.0f' % (np.median(ex_mat),np.mean(ex_mat),np.percentile(ex_mat,20),np.std(ex_mat)))
+            self.minThreshold = np.median(ex_mat)-0.8*np.std(ex_mat)
             print("minThreshold : ",self.minThreshold)
         else:
             print("no blob has been found")
@@ -519,14 +522,11 @@ def main(args):
     elif args["detectionArene"] == 'no':
         num_cores = 1#multiprocessing.cpu_count()
         posArene.append([1,(int(1), int(1)),(int(1200), int(1000))])
-        #open one frame -> select manually arena
-        #
-        #TO TO
-        #
     elif args["detectionArene"] == 'qrcode':
         num_cores = 4#multiprocessing.cpu_count()
         posArene = initPosArene(args,2)
         print(posArene)
+        #SELECT MANUALLY THE QR_CODE (S)
     elif args["detectionArene"] == 'manual':
         num_cores = 4#multiprocessing.cpu_count()
         posArene = initPosArene(args,3)
