@@ -2,3 +2,12 @@ numpy
 sphinx
 sphinx-gallery
 scikit-learn
+tkinter
+imutils
+pyzbar
+seaborn
+pandas
+csv
+matplotlib
+scipy
+statsmodels

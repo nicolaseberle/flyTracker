@@ -98,10 +98,13 @@ class Manager(object):
         self.roi = roi
         self.numArene = roi[0]
         self.initDisplay = 0
+        self.params = None
+        self.detector = None
         if self.parameters.magic == "1":
             self.mosaic = GenMosaic()
 
     def process(self):
+        self.initParam()
         self.calibration()
         self.initTracker()
         while(self.nextFrame()):
@@ -190,6 +193,15 @@ class Manager(object):
     def extractionPlot(self):
         print("extractionPlot")
         gray = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
+        keypoints = self.detector.detect(gray)
+
+        pts = [p.pt for p in keypoints]
+
+        #im_with_keypoints = cv2.drawKeypoints(gray, keypoints, np.array([]),
+        #    (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+        #cv2.imshow('figure ' + str(self.numArene), im_with_keypoints )
+        #cv2.imwrite('blobs' + str(self.numArene) + '.jpg', im_with_keypoints);
+
         ret,thresh2 = cv2.threshold(gray,self.minThreshold,255,cv2.THRESH_BINARY_INV)
         thresh2 = self.deleteQRcode(thresh2)
         thresh2_dilate = cv2.dilate(thresh2,self.parameters.kernel,iterations = 1)
@@ -198,7 +210,7 @@ class Manager(object):
         #if self.parameters.display == 1:
         #    cv2.imshow('maskMedian',thresh2_median)
 
-        im2, contours, hierarchy = cv2.findContours(thresh2_median,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+        contours, hierarchy = cv2.findContours(thresh2_median,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
 
         self.pos_t = np.empty((0,1,51), dtype='float32')
         self.init_brief()
@@ -235,10 +247,22 @@ class Manager(object):
             Z = np.float32(pixelpointsCV2 )
             number_points = len(Z)
             centroids = []
+            center = None
+            for p in pts:
+                if (np.min([box[0][0],box[1][0],box[2][0],box[3][0]]) <= int(p[0])) & (int(p[0]) <= np.max([box[0][0],box[1][0],box[2][0],box[3][0]])) & (np.min([box[0][1],box[1][1],box[2][1],box[3][1]]) <= int(p[1])) & (int(p[1]) <= np.max([box[0][1],box[1][1],box[2][1],box[3][1]])):
+                    center = [p[0],p[1]]
+                    break
+
+            if center != None:
+                cx = center[0]
+                cy = center[1]
+            else:
+                cx = ((box[0][0] + box[1][0] + box[2][0] + box[3][0])/4)
+                cy = ((box[0][1] + box[1][1] + box[2][1] + box[3][1])/4)
+            #print(pts)
+                #print("et non on passe par la",np.min(box[:][0]),np.min(box[:][1]),np.max(box[:][0]),np.max(box[:][1]))
             for n in range(2,const.MAX_FLIES_BY_CLUSTER + 1):
                 if number_points<=n:
-                    cx = ((box[0][0] + box[1][0] + box[2][0] + box[3][0])/4)
-                    cy = ((box[0][1] + box[1][1] + box[2][1] + box[3][1])/4)
                     for num in range(n):
                         centroids.append(int(cx))
                         centroids.append(int(cy))
@@ -252,8 +276,6 @@ class Manager(object):
 
             self.frame  = cv2.drawContours(self.frame  ,[box],0,(0,255,0),1)
 
-            cx = ((box[0][0] + box[1][0] + box[2][0] + box[3][0])/4)
-            cy = ((box[0][1] + box[1][1] + box[2][1] + box[3][1])/4)
             angle = np.arctan((box[0][1]-box[1][1])/(box[0][0]-box[1][0]))*180/np.pi
 
             centroids_array = np.asarray(centroids)
@@ -361,42 +383,47 @@ class Manager(object):
 
         print(surface)
 
+    def initParam(self):
+        # Setup SimpleBlobDetector parameters.
+        self.params = cv2.SimpleBlobDetector_Params()
+
+        # Change thresholds
+        self.params.minThreshold = 10;
+        self.params.maxThreshold = 150;
+
+        # Filter by Area.
+        self.params.filterByArea = True
+        self.params.minArea = 10
+        self.params.maxArea = 100
+        self.params.minDistBetweenBlobs = 5
+
+        # Filter by Circularity
+        self.params.filterByCircularity = False
+        self.params.minCircularity = 0.1
+
+        # Filter by Convexity
+        self.params.filterByConvexity = False
+        self.params.minConvexity = 0.87
+
+        # Filter by Inertia
+        #params.filterByInertia = True
+        #params.minInertiaRatio = 0.01
 
     def findThresholdMin(self):
         # Setup SimpleBlobDetector parameters.
-        params = cv2.SimpleBlobDetector_Params()
-        marge  = 5
-
-        # Change thresholds
-        params.minThreshold = 10;
-        params.maxThreshold = 150;
-
-        # Filter by Area.
-        params.filterByArea = True
-        params.minArea = 10
-        params.maxArea = 100
-        params.minDistBetweenBlobs = 5
-
-        # Filter by Circularity
-        params.filterByCircularity = False
-        params.minCircularity = 0.1
-
-        # Filter by Convexity
-        params.filterByConvexity = False
-        params.minConvexity = 0.87
-
-        # Filter by Inertia
-        params.filterByInertia = False
-        params.minInertiaRatio = 0.01
-
+        self.initParam()
+        marge = 5
         #use blob detector to establish the extraction threshold
-        detector = cv2.SimpleBlobDetector_create(params)
+        self.detector = cv2.SimpleBlobDetector_create(self.params)
         gray = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
         gray = self.deleteQRcode(gray)
 
         # Detect blobs.
         ex_mat = []
-        keypoints = detector.detect(gray)
+        keypoints = self.detector.detect(gray)
+        im_with_keypoints = cv2.drawKeypoints(gray, keypoints, np.array([]),
+            (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+        cv2.imwrite("blobs.jpg", im_with_keypoints);
         #print(keypoints)
         height,width = gray.shape
         if len(keypoints) != 0:
