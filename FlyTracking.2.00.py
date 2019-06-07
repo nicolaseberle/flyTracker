@@ -22,7 +22,7 @@ import multiprocessing
 
 class Parameters(object):
     def __init__(self,args,num_arene):
-        self.flag_hide_tracks = False
+        self.flag_hide_tracks = True
         self.init_once = False
         self.flag_init_record = False
 
@@ -197,9 +197,14 @@ class Manager(object):
 
         pts = [p.pt for p in keypoints]
 
-        #im_with_keypoints = cv2.drawKeypoints(gray, keypoints, np.array([]),
-        #    (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
-        #cv2.imshow('figure ' + str(self.numArene), im_with_keypoints )
+        im_with_keypoints = cv2.drawKeypoints(gray, keypoints, np.array([]),
+            (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+        height, width, depth = im_with_keypoints.shape
+        imgScale = 2
+        newX,newY = im_with_keypoints.shape[1]*imgScale, im_with_keypoints.shape[0]*imgScale
+        im_with_keypoints_resize = cv2.resize(im_with_keypoints,(int(newX),int(newY)))
+
+        cv2.imshow('figure ' + str(self.numArene), im_with_keypoints_resize )
         #cv2.imwrite('blobs' + str(self.numArene) + '.jpg', im_with_keypoints);
 
         ret,thresh2 = cv2.threshold(gray,self.minThreshold,255,cv2.THRESH_BINARY_INV)
@@ -210,7 +215,7 @@ class Manager(object):
         #if self.parameters.display == 1:
         #    cv2.imshow('maskMedian',thresh2_median)
 
-        contours, hierarchy = cv2.findContours(thresh2_median,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+        contours, _ = cv2.findContours(thresh2_median,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
 
         self.pos_t = np.empty((0,1,51), dtype='float32')
         self.init_brief()
