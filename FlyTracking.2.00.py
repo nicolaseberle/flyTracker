@@ -25,9 +25,8 @@ class Parameters(object):
         self.flag_hide_tracks = True
         self.init_once = False
         self.flag_init_record = False
-
-        self.alpha_1 = 0.5 # transparency of the mask to see the tracks
-        self.alpha_2 = 0 # transparency of the mask to see the tracks
+        self.alpha_1 = 0.495 # transparency of the mask to see the tracks
+        self.alpha_2 = -1 # transparency of the mask to see the tracks
         self.kernel = cv2.getStructuringElement(cv2.MORPH_CROSS,(3,3))
         self.color = np.random.randint(0,255,(255,3))
         self.criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
@@ -193,18 +192,18 @@ class Manager(object):
     def extractionPlot(self):
         print("extractionPlot")
         gray = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
-        keypoints = self.detector.detect(gray)
+        #keypoints = self.detector.detect(gray)
 
-        pts = [p.pt for p in keypoints]
+        #pts = [p.pt for p in keypoints]
 
-        im_with_keypoints = cv2.drawKeypoints(gray, keypoints, np.array([]),
-            (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
-        height, width, depth = im_with_keypoints.shape
-        imgScale = 2
-        newX,newY = im_with_keypoints.shape[1]*imgScale, im_with_keypoints.shape[0]*imgScale
-        im_with_keypoints_resize = cv2.resize(im_with_keypoints,(int(newX),int(newY)))
+        #im_with_keypoints = cv2.drawKeypoints(gray, keypoints, np.array([]),
+        #    (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+        #height, width, depth = im_with_keypoints.shape
+        #imgScale = 2
+        #newX,newY = im_with_keypoints.shape[1]*imgScale, im_with_keypoints.shape[0]*imgScale
+        #im_with_keypoints_resize = cv2.resize(im_with_keypoints,(int(newX),int(newY)))
 
-        cv2.imshow('figure ' + str(self.numArene), im_with_keypoints_resize )
+        #cv2.imshow('figure ' + str(self.numArene), im_with_keypoints_resize )
         #cv2.imwrite('blobs' + str(self.numArene) + '.jpg', im_with_keypoints);
 
         ret,thresh2 = cv2.threshold(gray,self.minThreshold,255,cv2.THRESH_BINARY_INV)
@@ -221,6 +220,7 @@ class Manager(object):
         self.init_brief()
 
         #For each blob/contour
+        img_ = gray
         for cnt in contours:
 
             rect = cv2.minAreaRect(cnt)
@@ -242,32 +242,46 @@ class Manager(object):
             else:
                 ellipse = [(-1,-1),(-1,-1),-1]
 
-
             mask_2 = np.zeros_like(thresh2_median)
             cv2.fillPoly(mask_2, np.int_([cnt]), 1)
 
             #as we don't know if it's a cluster or not
             #we compute different hypothesis
+            #cv2.imshow('mouche',gray[y:y+h, x:x+w])
+            #cv2.waitKey(1000)
             pixelpointsCV2 = cv2.findNonZero(mask_2[y:y+h, x:x+w])
+            mask_grad = gray[y:y+h, x:x+w]
             Z = np.float32(pixelpointsCV2 )
             number_points = len(Z)
-            centroids = []
-            center = None
-            for p in pts:
-                if (np.min([box[0][0],box[1][0],box[2][0],box[3][0]]) <= int(p[0])) & (int(p[0]) <= np.max([box[0][0],box[1][0],box[2][0],box[3][0]])) & (np.min([box[0][1],box[1][1],box[2][1],box[3][1]]) <= int(p[1])) & (int(p[1]) <= np.max([box[0][1],box[1][1],box[2][1],box[3][1]])):
-                    center = [p[0],p[1]]
-                    break
 
-            if center != None:
-                cx = center[0]
-                cy = center[1]
-            else:
-                cx = ((box[0][0] + box[1][0] + box[2][0] + box[3][0])/4)
-                cy = ((box[0][1] + box[1][1] + box[2][1] + box[3][1])/4)
+            #sum = [ 0 , 0]
+            #weight = 0
+            #for p in Z:
+            #    sum += p*(255-gray[int(p[0][0])+y,int(p[0][1])+x])/255
+            #    weight += (255-gray[int(p[0][0])+y,int(p[0][1])+x])/255
+
+            #centroid_w = sum/weight+[[y,x]]
+
+
+            centroids = []
+            #center = None
+            #for p in pts:
+            #    if (np.min([box[0][0],box[1][0],box[2][0],box[3][0]]) <= int(p[0])) & (int(p[0]) <= np.max([box[0][0],box[1][0],box[2][0],box[3][0]])) & (np.min([box[0][1],box[1][1],box[2][1],box[3][1]]) <= int(p[1])) & (int(p[1]) <= np.max([box[0][1],box[1][1],box[2][1],box[3][1]])):
+            #        center = [p[0],p[1]]
+            #        break
+
+            #if center != None:
+            #    cx = center[0]
+            #    cy = center[1]
+            #else:
+            #    cx = ((box[0][0] + box[1][0] + box[2][0] + box[3][0])/4)
+            #    cy = ((box[0][1] + box[1][1] + box[2][1] + box[3][1])/4)
             #print(pts)
                 #print("et non on passe par la",np.min(box[:][0]),np.min(box[:][1]),np.max(box[:][0]),np.max(box[:][1]))
             for n in range(2,const.MAX_FLIES_BY_CLUSTER + 1):
                 if number_points<=n:
+                    cx = ((box[0][0] + box[1][0] + box[2][0] + box[3][0])/4)
+                    cy = ((box[0][1] + box[1][1] + box[2][1] + box[3][1])/4)
                     for num in range(n):
                         centroids.append(int(cx))
                         centroids.append(int(cy))
@@ -280,6 +294,15 @@ class Manager(object):
                         centroids.append(np.sum(label == num))
 
             self.frame  = cv2.drawContours(self.frame  ,[box],0,(0,255,0),1)
+
+            #cx = ((box[0][0] + box[1][0] + box[2][0] + box[3][0])/4)
+            #cy = ((box[0][1] + box[1][1] + box[2][1] + box[3][1])/4)
+
+            cx = np.mean(Z,0)[0,0] + x
+            cy = np.mean(Z,0)[0,1] + y
+            #cx = centroid_w[0][1]
+            #cy = centroid_w[0][0]
+            #print(cx,cy)
 
             angle = np.arctan((box[0][1]-box[1][1])/(box[0][0]-box[1][0]))*180/np.pi
 
@@ -367,7 +390,12 @@ class Manager(object):
 
         if self.parameters.display == 1: #and  self.numCurrentFrame%2==0:
             figureName = 'res_' + str(self.numArene)
-            cv2.imshow(figureName,self.img)
+            height, width, depth = self.img.shape
+            imgScale = 2
+            newX,newY = self.img.shape[1]*imgScale, self.img.shape[0]*imgScale
+            im_ = cv2.resize(self.img,(int(newX),int(newY)))
+
+            cv2.imshow(figureName,im_)
             cv2.waitKey(1)
 
         if self.parameters.flag_init_record == True:
@@ -411,8 +439,9 @@ class Manager(object):
         self.params.minConvexity = 0.87
 
         # Filter by Inertia
-        #params.filterByInertia = True
-        #params.minInertiaRatio = 0.01
+        self.params.filterByInertia = True
+        self.params.minInertiaRatio = 0.1
+        self.params.maxInertiaRatio = 0.9
 
     def findThresholdMin(self):
         # Setup SimpleBlobDetector parameters.
