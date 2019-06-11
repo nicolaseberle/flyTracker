@@ -351,7 +351,7 @@ class Manager(object):
     def nextFrame(self):
         print("nextFrame : load next frame")
         err = self.fvs.more()
-        time.sleep(0.020)
+        time.sleep(0.001)
         if err !=1:
             return err
 
@@ -421,27 +421,28 @@ class Manager(object):
         self.params = cv2.SimpleBlobDetector_Params()
 
         # Change thresholds
-        self.params.minThreshold = 10;
-        self.params.maxThreshold = 150;
+        self.params.minThreshold = 15;
+        self.params.maxThreshold = 110;
 
         # Filter by Area.
         self.params.filterByArea = True
-        self.params.minArea = 10
-        self.params.maxArea = 100
+        self.params.minArea = 15
+        self.params.maxArea = 80
         self.params.minDistBetweenBlobs = 5
 
         # Filter by Circularity
-        self.params.filterByCircularity = False
+        self.params.filterByCircularity = True
         self.params.minCircularity = 0.1
+        #self.params.maxCircularity = 0.49
 
         # Filter by Convexity
-        self.params.filterByConvexity = False
-        self.params.minConvexity = 0.87
+        self.params.filterByConvexity = True
+        self.params.minConvexity = 0.25
 
         # Filter by Inertia
         self.params.filterByInertia = True
-        self.params.minInertiaRatio = 0.1
-        self.params.maxInertiaRatio = 0.9
+        self.params.minInertiaRatio = 0.01
+        self.params.maxInertiaRatio = 0.2
 
     def findThresholdMin(self):
         # Setup SimpleBlobDetector parameters.
@@ -616,7 +617,7 @@ if __name__ == '__main__':
                     help="# output directory")
     ap.add_argument("-m", "--magic", type=str, default=0,
                     help="# magic option")
-    ap.add_argument("-d", "--detectionArene", type=str, default='qrcode',
+    ap.add_argument("-d", "--detectionArene", type=str, default='manual',
                 help="# detection auto des arene no|auto|circle|qrcode")
     args = vars(ap.parse_args())
 
