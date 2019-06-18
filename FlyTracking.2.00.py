@@ -375,15 +375,15 @@ class Manager(object):
                 self.mask = cv2.line(self.mask, (int(track.old_plot[0][0]),int(track.old_plot[0][1])),(int(track.plot[0][0]),int(track.plot[0][1])), self.parameters.color[track.label].tolist(), 1)
                 cv2.putText(self.frame,str(track.label),(int(track.plot[0][0]),int(track.plot[0][1])), self.parameters.font, 0.4,(255,0,0),1,cv2.LINE_AA)
 
-        cv2.putText(self.frame,'frame ' + str(self.numCurrentFrame),(10,20), self.parameters.font, 0.4,(255,0,0),1,cv2.LINE_AA)
-        cv2.putText(self.frame,'nb tracks ' + str(len(self.tracker.tracks)),(10,40), self.parameters.font, 0.4,(255,0,0),1,cv2.LINE_AA)
-        cv2.putText(self.frame,'Threshold  %3d' % (self.minThreshold),(10,60), self.parameters.font, 0.4,(255,0,0),1,cv2.LINE_AA)
+        cv2.putText(self.frame,'frame ' + str(self.numCurrentFrame),(10,20), self.parameters.font, 0.3,(255,0,0),1,cv2.LINE_AA)
+        cv2.putText(self.frame,'nb tracks ' + str(len(self.tracker.tracks)),(10,40), self.parameters.font, 0.3,(255,0,0),1,cv2.LINE_AA)
+        cv2.putText(self.frame,'Threshold  %3d' % (self.minThreshold),(10,60), self.parameters.font, 0.3,(255,0,0),1,cv2.LINE_AA)
 
         if self.parameters.flag_hide_tracks==True:
-            cv2.putText(self.frame,"fade out activate",(10,80), self.parameters.font, 0.4,(255,0,0),1,cv2.LINE_AA)
+            cv2.putText(self.frame,"fade out activate",(10,80), self.parameters.font, 0.3,(255,0,0),1,cv2.LINE_AA)
 
         if self.parameters.flag_init_record == True:
-            cv2.putText(self.frame,"save video",(10,100), self.parameters.font, 0.4,(255,0,0),1,cv2.LINE_AA)
+            cv2.putText(self.frame,"save video",(10,100), self.parameters.font, 0.3,(255,0,0),1,cv2.LINE_AA)
 
         self.img = cv2.addWeighted(self.mask, 1, self.frame, 1, 0)
         cv2.addWeighted(self.mask, self.parameters.alpha_1, self.mask, 0.5, self.parameters.alpha_2 ,self.mask)
@@ -391,7 +391,7 @@ class Manager(object):
         if self.parameters.display == 1: #and  self.numCurrentFrame%2==0:
             figureName = 'res_' + str(self.numArene)
             height, width, depth = self.img.shape
-            imgScale = 2
+            imgScale = 1
             newX,newY = self.img.shape[1]*imgScale, self.img.shape[0]*imgScale
             im_ = cv2.resize(self.img,(int(newX),int(newY)))
 
@@ -483,7 +483,7 @@ class Manager(object):
     def initPosArene(self):
         posArene = []
         height,width,channel = self.frame.shape
-        scale = 2
+        scale = 1
         src = cv2.resize(self.frame,(int(width/scale), int(height/scale)), interpolation = cv2.INTER_LINEAR)
         gray = cv2.cvtColor(src, cv2.COLOR_BGR2GRAY)
         rows = gray.shape[0]
@@ -533,7 +533,7 @@ def initPosArene(args,flag):
     # automatic extraction of arean circles
     # TO DO - param1 param2 have to be defined automatically
     if flag == 1:
-        scale = 2.5
+        scale = 1
         src = cv2.resize(frame,(int(width/scale), int(height/scale)), interpolation = cv2.INTER_LINEAR)
         gray = cv2.cvtColor(src, cv2.COLOR_BGR2GRAY)
         rows = gray.shape[0]
