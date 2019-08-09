@@ -102,6 +102,24 @@ c4 = [2, 2]
 c5 = [3, 1]
 c6 = [4, 2]
 
-X = [c2, c3, c1, c4, c6, c5]
+# X = [c2, c3, c1, c4, c5 , c6]
 
-print(calcul_coord(X))
+# define the lower and upper limits for x and y
+minX, maxX, minY, maxY = 0., 5., 0., 4.
+# create one-dimensional arrays for x and y
+x = np.linspace(minX, maxX, (maxX-minX)+1)
+print(x)
+y = np.linspace(minY, maxY, (maxY-minY)+1)
+print(y)
+# create the mesh based on these arrays
+X, Y = np.meshgrid(x, y)
+print(X)
+print(Y)
+X = X.reshape((np.prod(X.shape),))
+Y = Y.reshape((np.prod(Y.shape),))
+print(X)
+print(Y)
+
+coords = list(zip(X, Y))
+
+print(calcul_coord(coords))
