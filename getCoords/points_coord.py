@@ -107,9 +107,9 @@ c6 = [4, 2]
 # define the lower and upper limits for x and y
 minX, maxX, minY, maxY = 0., 5., 0., 4.
 # create one-dimensional arrays for x and y
-x = np.linspace(minX, maxX, (maxX-minX)+1)
+x = np.linspace(minX, maxX, (maxX-minX)+1) + np.random.rand(1, int(maxX-minX)+1)*0.1
 print(x)
-y = np.linspace(minY, maxY, (maxY-minY)+1)
+y = np.linspace(minY, maxY, (maxY-minY)+1)+ np.random.rand(1, int(maxY-minY)+1)*0.1
 print(y)
 # create the mesh based on these arrays
 X, Y = np.meshgrid(x, y)
