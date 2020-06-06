@@ -23,8 +23,6 @@ else:
 	from Queue import Queue
 
 
-
-
 class FileVideoStream:
     def __init__(self, path, flag_transform=None, queueSize=64,roi=None):
         self.stream = cv2.VideoCapture(path)
