@@ -48,3 +48,9 @@ MANIFEST
 
 # Per-project virtualenvs
 .venv*/
+
+.mypy_cache/
+
+*.h264
+
+*.mp4
