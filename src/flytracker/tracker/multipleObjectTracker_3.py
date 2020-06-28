@@ -60,6 +60,8 @@ class MultipleObjectTracker(object):
                 self.tracks.append(t)
                 self.indiceTrack += 1
             return True
+
+
         #init of dist : the distance matrix between current_plot and the plots of tracks
         dists = np.zeros(shape=(len(self.tracks), len(plots)))
         distsArea = np.zeros(shape=(len(self.tracks), len(plots)))
