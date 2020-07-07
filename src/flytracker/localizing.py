@@ -1,73 +1,73 @@
 import cv2 as cv
 import numpy as np
+from itertools import chain
 
 
 class OriginalLocalising:
-    def __init__(self, max_perimeter=200, max_flies_per_cluster=5):
-        self.max_perimeter = max_perimeter
-        self.max_flies_per_cluster = max_flies_per_cluster
+    def __init__(self, n_flies=40):
+        self.n_flies = n_flies
+        self.margin = 5
 
-    def __call__(self, frame):
+    def __call__(self, thresholded_frame, frame):
         # Finding contours
-        contours = cv.findContours(frame, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)[0]
-    
+        contours = cv.findContours(thresholded_frame, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)[0]
         # Step 6 - iterating over flies
+        fly_features = []
+        arc_lengths = []
         for contour in contours:
-            # Get rectangular bounding boxes (why two?)
-            bbox = cv.minAreaRect(contour) 
-            x, y, w, h = cv.boundingRect(contour)
-
-            # Check if perimeter isnt too long
-            perimeter = cv.arcLength(contour, True)
-            if perimeter > self.max_perimeter:
-                print('Perimeter too long. Skipping.')
-                continue
-    
-            # Get area and coordinates of bounding box
-            area = cv.contourArea(contour)
-            bbox_coors = cv.boxPoints(bbox).astype(np.int)
-
-            # Try and fit an ellipse
-            if contour.shape[0] >= 5:
-                ellipse = cv.fitEllipse(contour)
-            else:
-                ellipse = [(-1, -1), (-1, -1), -1]
-
-            # Finding pixels of fly
-            mask = cv.fillPoly(np.zeros_like(frame), [contour], 1) # oof this is a massive array for a single fly...
-            pixels = cv.findNonZero(mask[y:(y + h), x:(x + w)]).astype(np.float32)
-            n_pixels = pixels.shape[0]
+            ellipse = cv.fitEllipse(contour)
+            arc_lengths.append(cv.arcLength(contour, closed=True))
+            ellipse = list(chain(*(feature if isinstance(feature, tuple) else (feature,) for feature in ellipse))) # flattening data
+            fly_features.append(ellipse)
         
-            # WTF is happening below? No idea....
-            centroids = []
-            kmeans_criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 10, 1.0)
-            flags = cv.KMEANS_RANDOM_CENTERS
-            for n in range(2, self.max_flies_per_cluster + 1): #iterating over what exactly?
-                if n_pixels <= n: # what does the number of pixels have to do with number of flies?
-                    cx = ((bbox_coors[0][0] + bbox_coors[1][0] + bbox_coors[2][0] + bbox_coors[3][0]) / 4) # why / 4 ?
-                    cy = ((bbox_coors[0][1] + bbox_coors[1][1] + bbox_coors[2][1] + bbox_coors[3][1]) / 4)
-                    for num in range(n):
-                        centroids.append(int(cx))
-                        centroids.append(int(cy))
-                        centroids.append(n)
-            else:
-                ret, label, center = cv.kmeans(pixels, n, None, kmeans_criteria, 10, flags)
-                for num in range(n):
-                    centroids.append(int(float(center[num][0]) + x))
-                    centroids.append(int(float(center[num][1]) + y))
-                    centroids.append(np.sum(label == num))
+        if len(fly_features) != self.n_flies:
+            # Finding bbox of maximum arc length
+            max_arc_idx = np.argmax(arc_lengths)
+            bbox = cv.boundingRect(contours[max_arc_idx])
+            
+            # Doing watershed to separate
+            markers = self.watershed(thresholded_frame[bbox[1] - self.margin:bbox[1] + bbox[3] + self.margin, bbox[0] - self.margin:bbox[0] + bbox[2] + self.margin], frame[bbox[1] - self.margin:bbox[1] + bbox[3] + self.margin, bbox[0] - self.margin:bbox[0] + bbox[2] + self.margin])
+            
+            # Updating contours
+            local_contours = cv.findContours(markers, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)[0]
+            
+            # deleting the old marker
+            contours.pop(max_arc_idx)
+            fly_features.pop(max_arc_idx)
+            # Adding new contours and ellipses
+            contours.extend(local_contours)
+            for contour in local_contours:
+                ellipse = cv.fitEllipse(contour.astype(np.float32))
+                ellipse_flattened = list(chain(*(feature if isinstance(feature, tuple) else (feature,) for feature in ellipse))) # flattening data
+                fly_features.append(ellipse_flattened)
 
-        # centres of the contour and angle of bbox
-        # in original code there's a bug in the angle, its converted to degrees twice (once here, once in current_plot).
-        # We only do it here.
-        cx = np.mean(pixels, 0)[0, 0] + x
-        cy = np.mean(pixels, 0)[0, 1] + y
-        angle = np.arctan((bbox_coors[0, 1]-bbox_coors[1, 1]) / (bbox_coors[0, 0]-bbox_coors[1, 0]))*180/np.pi 
+        return np.array(fly_features)
 
-        # Collecting output
-        centroids = np.array(centroids, dtype=np.float32).reshape(1, 1, -1)
-        locations = np.array([[[cx, cy, angle, area, ellipse[0][0], ellipse[0][1], ellipse[1][0], ellipse[1][1], ellipse[2]]]], dtype=np.float32)
-        locations = np.concatenate((locations, centroids), axis=2)
-    
-        return locations
+    def watershed(self, thresholded_frame, frame):
+        # noise removal
+        kernel = np.ones((3, 3), np.uint8)
+        opening = cv.morphologyEx(thresholded_frame, cv.MORPH_OPEN, kernel, iterations=2)
+        # sure background area
+        sure_bg = cv.dilate(opening, kernel, iterations=3)
+        # Finding sure foreground area
+        dist_transform = cv.distanceTransform(opening, cv.DIST_L2, 5)
+        ret, sure_fg = cv.threshold(dist_transform, 0.7*dist_transform.max(), 255,0)
+        # Finding unknown region
+        sure_fg = np.uint8(sure_fg)
+        unknown = cv.subtract(sure_bg, sure_fg)
+        
+        # Marker labelling
+        ret, markers = cv.connectedComponents(sure_fg)
+        # Add one to all labels so that sure background is not 0, but 1
+        markers = markers+1
+        # Now, mark the region of unknown with zero
+        markers[unknown == 255] = 0
+
+        markers[markers > 1] = 2
+
+        markers = cv.watershed(frame, markers)
+        markers[markers == -1] = 1
+        markers -= 1
+        
+        return markers.astype(np.uint8)
 

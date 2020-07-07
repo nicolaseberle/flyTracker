@@ -54,3 +54,5 @@ MANIFEST
 *.h264
 
 *.mp4
+
+data/movies/

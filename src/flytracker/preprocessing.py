@@ -21,7 +21,7 @@ class OriginalPreprocessing:
         #Step 3 - Post Processing: Dilating and blurring
         processed_frame = cv.dilate(thresholded_frame, self.dilation_kernel)
         processed_frame = cv.medianBlur(processed_frame, 3)
-    
+
         # Step 4 - removing QR codes,
         # TO DO: make automatic, right now its hardcoded
 
@@ -50,10 +50,11 @@ class OriginalPreprocessing:
                 y = int(kpoint.pt[1])
                 if x > 2*margin and y > 2*margin and x < width - 2*margin and y < height - 2*margin:
                     ex_mat.append(np.reshape(frame[y-margin:y+margin,x-margin:x+margin],(1,100)))
-            minimum_threshold = np.median(ex_mat)-0.8*np.std(ex_mat)
+            minimum_threshold = int(np.median(ex_mat)-0.8*np.std(ex_mat))
 
         else:
             minimum_threshold = 40
+        #print(f'Minimum threshold: {minimum_threshold}')
         return minimum_threshold
 
     @property

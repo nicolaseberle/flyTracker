@@ -18,7 +18,7 @@ class FlyTracker:
         for frame_idx in np.arange(n_frames)[:100]:
             _, frame = capture.read()
             preprocessed_frame = self.preprocessing(frame)
-            locations.append(self.localizing(preprocessed_frame))
+            locations.append(self.localizing(preprocessed_frame, frame))
             if frame_idx % 10 == 0:
                 print(f'Done with frame {frame_idx}')
         np.save(output_folder + 'locations.npy', locations)
