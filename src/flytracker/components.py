@@ -3,6 +3,7 @@ import numpy as np
 
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial import distance_matrix
+from sklearn.cluster import KMeans
 
 
 class Frame:
@@ -70,7 +71,26 @@ class BlobDetector:
         return params
 
 
-class Tracker:
-    def __call__(self, coordinates_i, coordinates_j, identities_i):
-        identities_j = linear_sum_assignment(distance_matrix(coordinates_i, coordinates_j))[1]
-        return identities_i[identities_j][:, None]
+class HungarianTracker:
+    def __call__(self, coordinates_i, coordinates_j):
+        identities_j = linear_sum_assignment(distance_matrix(coordinates_i, coordinates_j))[1].squeeze()
+        return identities_j
+
+
+class KMeansCorrect:
+    def __init__(self, n_flies):
+        self.n_flies = n_flies
+        self.estimator = KMeans(n_clusters=self.n_flies)
+        
+    def __call__(self, image):
+        # We first threshold
+        thresholded_frame = cv.threshold(image(), 120, 255, cv.THRESH_BINARY_INV)[1]
+        
+        # Get the location of the non-zero pixels
+        fly_pixels = np.stack(np.where(thresholded_frame != 0)).T[:, ::-1] # to get y and x good
+        
+        # Fit and get cluster centres
+        self.estimator.fit(fly_pixels)
+        locations = self.estimator.cluster_centers_
+        
+        return locations
