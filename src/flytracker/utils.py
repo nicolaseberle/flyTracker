@@ -46,7 +46,7 @@ def run_tracker(n_frames, n_flies=40, path=None, mask=None):
 
         # Correct error
         if fly_locations.shape[0] != n_flies:
-            fly_locations = error_correct(frame)
+            fly_locations = error_correct(frame, locations[-1])
         locations.append(fly_locations)
 
         # Track flies

@@ -72,17 +72,23 @@ class BlobDetector:
 
 
 class HungarianTracker:
+    def __init__(self, threshold=50):
+        self.threshold = threshold
+
     def __call__(self, coordinates_i, coordinates_j):
-        identities_j = linear_sum_assignment(distance_matrix(coordinates_i, coordinates_j))[1].squeeze()
+        dist_matrix = distance_matrix(coordinates_i, coordinates_j)
+        dist_matrix[dist_matrix >= self.threshold] = 1e4 # distances longer than threshold can't happen
+
+        identities_j = linear_sum_assignment(dist_matrix)[1].squeeze()
         return identities_j
 
 
 class KMeansCorrect:
     def __init__(self, n_flies):
         self.n_flies = n_flies
-        self.estimator = KMeans(n_clusters=self.n_flies)
+        self.estimator = KMeans(n_clusters=self.n_flies, init=np.zeros((n_flies, 2)), n_init=1)
         
-    def __call__(self, image):
+    def __call__(self, image, previous_frame_locations):
         # We first threshold
         thresholded_frame = cv.threshold(image(), 120, 255, cv.THRESH_BINARY_INV)[1]
         
@@ -90,6 +96,7 @@ class KMeansCorrect:
         fly_pixels = np.stack(np.where(thresholded_frame != 0)).T[:, ::-1] # to get y and x good
         
         # Fit and get cluster centres
+        self.estimator.init = previous_frame_locations  # initialize with location from previous frame
         self.estimator.fit(fly_pixels)
         locations = self.estimator.cluster_centers_
         
