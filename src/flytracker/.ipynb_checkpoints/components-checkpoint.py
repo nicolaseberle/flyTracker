@@ -3,7 +3,7 @@ import numpy as np
 
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial import distance_matrix
-from sklearn.cluster import KMeans, MiniBatchKMeans
+from sklearn.cluster import KMeans
 
 
 class Frame:
@@ -83,12 +83,11 @@ class HungarianTracker:
         return identities_j
 
 
-class KMeansSKLearn:
+class KMeansCorrect:
     def __init__(self, n_flies):
         self.n_flies = n_flies
-        self.estimator = KMeans(n_clusters=self.n_flies)
-        #self.estimator = MiniBatchKMeans(n_clusters=self.n_flies, compute_labels=False, tol=1)
-
+        self.estimator = KMeans(n_clusters=self.n_flies, init=np.zeros((n_flies, 2)), n_init=1)
+        
     def __call__(self, image, previous_frame_locations):
         # We first threshold
         thresholded_frame = cv.threshold(image(), 120, 255, cv.THRESH_BINARY_INV)[1]
@@ -97,34 +96,8 @@ class KMeansSKLearn:
         fly_pixels = np.stack(np.where(thresholded_frame != 0)).T[:, ::-1] # to get y and x good
         
         # Fit and get cluster centres
-        if previous_frame_locations is None:
-            self.estimator.n_init = 10
-            self.estimator.fit(fly_pixels)
-        else:
-            self.estimator.n_init = 1
-            self.estimator.init = previous_frame_locations
-            self.estimator.fit(fly_pixels)
-       
+        self.estimator.init = previous_frame_locations  # initialize with location from previous frame
+        self.estimator.fit(fly_pixels)
         locations = self.estimator.cluster_centers_
+        
         return locations
-
-
-class KMeansC:
-    def __init__(self, n_flies):
-        self.n_flies = n_flies
-        self.criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 300, 1e-4)
-        
-    def __call__(self, image, previous_frame_labels):
-        # We first threshold
-        thresholded_frame = cv.threshold(image(), 120, 255, cv.THRESH_BINARY_INV)[1]
-        
-        # Get the location of the non-zero pixels
-        fly_pixels = np.stack(np.where(thresholded_frame != 0)).T[:, ::-1].astype('float32')# to get y and x good
-        
-        if previous_frame_labels is not None:
-            print(previous_frame_labels.shape, previous_frame_labels.dtype, fly_pixels.shape)
-            compactness, labels, centers = cv.kmeans(fly_pixels, self.n_flies, previous_frame_labels, self.criteria, 1, cv.KMEANS_USE_INITIAL_LABELS)
-        else:
-            compactness, labels, centers = cv.kmeans(fly_pixels, self.n_flies, None, self.criteria, 10, cv.KMEANS_PP_CENTERS) 
-        return centers, labels
-
