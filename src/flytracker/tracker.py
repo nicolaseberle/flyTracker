@@ -6,8 +6,8 @@ from sklearn.cluster import KMeans
 class Tracker:
     def __init__(self, n_flies, mask):
         self.n_flies = n_flies
-        self.mask = mask
-        self._estimator = KMeans(n_clusters=self.n_flies, n_init=20)
+        self.mask = mask.astype('uint8')
+        self._estimator = KMeans(n_clusters=self.n_flies, n_init=10)
     
     def run(self, path, n_frames):
         locations = self._localize(path, n_frames) # Localizing flies
@@ -21,20 +21,16 @@ class Tracker:
 
         capture = cv.VideoCapture(path)
         for frame_idx in np.arange(n_frames):
-            # Load as grayscale, apply mask and threshold, all inplace for speed
+            # Load as grayscale, apply mask, find nonzero, all inplace for speed
             image = cv.cvtColor(capture.read()[1], cv.COLOR_BGR2GRAY)
-            np.putmask(image, ~self.mask, 255)
-            image = cv.threshold(image, 120, 255, cv.THRESH_BINARY_INV)[1]
+            fly_pixels = cv.findNonZero(cv.bitwise_and((image < 120).astype('uint8'), self.mask)).squeeze() 
 
-            # Set initial positions for clusters
+            # Set initial centroids as previous frame' locations and do kmeans
             if frame_idx >= 1:
                 self._estimator.n_init = 1
                 self._estimator.init = locations[-1]
-
-            # Get the location of the non-zero pixels amd fit
-            fly_pixels = np.stack(np.nonzero(image), axis=1)
             locations.append(self._estimator.fit(fly_pixels).cluster_centers_)
-        return np.concatenate(locations, axis=0)
+        return locations
 
     '''
     def _identify(self):
