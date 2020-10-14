@@ -56,3 +56,4 @@ MANIFEST
 *.mp4
 
 data/movies/
+.vscode/
