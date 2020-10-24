@@ -2,24 +2,33 @@ import numpy as np
 import cv2 as cv
 import pandas as pd
 from sklearn.cluster import KMeans
+from os import path
 
 
 class Tracker:
-    def __init__(self, mask, movie_path, output_path):
-        self.mask = mask.astype('uint8')
-        self.output_path = output_path
+    def __init__(self, movie_path, mask, output_path):
         self.movie_path = movie_path
+        self.output_path = output_path
+
+        self.mask = mask
+        if self.mask is not None:
+            self.mask = self.mask.astype('uint8')
 
         self.n_flies = None
+        self.initial_frame = None
 
     def run(self, n_frames, n_initialize):
         capture = cv.VideoCapture(self.movie_path)
-        self.n_flies, initial_positions = self.initialize(capture, n_initialize, self.mask)     
+        if self.mask is None:
+            self.mask = np.ones((int(capture.get(4)), int(capture.get(3))), dtype='uint8')
+
+        self.n_flies, initial_positions, self.initial_frame = self.initialize(capture, n_initialize, self.mask)     
 
         locations = self.localize(capture, self.mask, self.n_flies, initial_positions, n_frames)  # Localizing flies
-        dataset = self.post_process(locations)  # Postprocessing
+        dataset = self.post_process(locations, self.initial_frame)  # Postprocessing
 
-        #dataset.to_hdf(self.output_path, 'df')
+        output_path = path.join(self.output_path, 'df.hdf')
+        dataset.to_hdf(output_path, 'df')
         return dataset
 
     def initialize(self, capture, n_frames, mask):
@@ -30,7 +39,7 @@ class Tracker:
         blob_detector = cv.SimpleBlobDetector_create(self.default_blob_detector_params)
 
         n_blobs = []
-        while True:
+        for frame_idx in np.arange(2 * n_frames):
             image = cv.cvtColor(capture.read()[1], cv.COLOR_BGR2GRAY)
             keypoints = blob_detector.detect(image * mask)  # get keypoints
             n_blobs.append(len(keypoints))
@@ -39,9 +48,10 @@ class Tracker:
                 n_flies = int(np.median(n_blobs)) # we define number of flies as median number found over first n frames
             if (len(n_blobs) >= n_frames) and (n_blobs[-1] == n_flies):
                 locations = np.array([keypoint.pt for keypoint in keypoints])
+                initial_frame = frame_idx
                 break
 
-        return n_flies, locations
+        return n_flies, locations, initial_frame
 
     def localize(self, capture, mask, n_flies, initial_position, n_frames):
         locations = [initial_position]
@@ -58,11 +68,11 @@ class Tracker:
             locations.append(estimator.fit(fly_pixels).cluster_centers_)
         return locations
 
-    def post_process(self, locations):
+    def post_process(self, locations, initial_frame):
         n_frames = len(locations)
         n_flies = len(locations[0])
         identities = (np.arange(n_flies)[None, :] * np.ones((n_frames, n_flies))).reshape(-1, 1) # we get free tracking from the kmeans
-        frames = (np.arange(n_frames)[:, None] * np.ones((n_frames, n_flies))).reshape(-1, 1)
+        frames = (np.arange(initial_frame, n_frames + initial_frame)[:, None] * np.ones((n_frames, n_flies))).reshape(-1, 1)
         df = pd.DataFrame(np.concatenate([frames, identities, np.concatenate(locations, axis=0)], axis=1), columns=['frame', 'ID', 'x', 'y'])
         return df
 
