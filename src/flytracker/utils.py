@@ -1,5 +1,5 @@
 import numpy as np
-
+import pandas as pd
 
 class FourArenasQRCodeMask:
     """Contains mask for four arenas with QR code."""
@@ -17,3 +17,22 @@ class FourArenasQRCodeMask:
         mask[:, -200:] = 0
         
         return mask
+
+@pd.api.extensions.register_dataframe_accessor("groups")
+class Groups:
+    def __init__(self, pandas_obj):
+        self._validate(pandas_obj)
+        self._obj = pandas_obj
+        
+    @staticmethod
+    def _validate(obj):
+        pass
+
+    @property
+    def coordinates(self):
+        # return the geographic center point of this DataFrame
+        return self._obj[['x', 'y']]
+    
+    @property
+    def velocities(self):
+        return self.obj[['v_x', 'v_y']]
