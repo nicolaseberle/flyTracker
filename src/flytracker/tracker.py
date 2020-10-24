@@ -17,20 +17,36 @@ class Tracker:
         self.n_flies = None
         self.initial_frame = None
 
-    def run(self, n_frames, n_initialize):
+    def run(self, n_frames=0, n_initialize=100, n_per_batch=10000):
         capture = cv.VideoCapture(self.movie_path)
         if self.mask is None:
             self.mask = np.ones((int(capture.get(4)), int(capture.get(3))), dtype='uint8')
 
         self.n_flies, initial_positions, self.initial_frame = self.initialize(capture, n_initialize, self.mask)     
 
-        locations = self.localize(capture, self.mask, self.n_flies, initial_positions, n_frames)  # Localizing flies
-        dataset = self.post_process(locations, self.initial_frame)  # Postprocessing
+        # We localize in batches
+        batch = 0
+        while True:
+            if (n_frames != 0) and (n_frames - batch * n_per_batch < n_per_batch):
+                n_batch = n_frames % n_per_batch
+            else:
+                n_batch = n_per_batch
 
-        output_path = path.join(self.output_path, 'df.hdf')
-        dataset.to_hdf(output_path, 'df')
-        return dataset
+            locations = self.localize(capture, self.mask, self.n_flies, initial_positions, n_batch)  # Localizing flies
+            dataset = self.post_process(locations, self.initial_frame + batch * n_per_batch)  # Postprocessing
+            output_path = path.join(self.output_path, f'df_batch_{batch}.hdf')
+            dataset.to_hdf(output_path, 'df')
 
+            # If our batch is incomplete, we're finished
+            if (len(locations) < n_per_batch):
+                break
+            else:
+                batch += 1
+                initial_positions = locations[-1]
+    
+        return dataset # useful for developing
+
+    # Logic functions below
     def initialize(self, capture, n_frames, mask):
         """
         Runs a blob detector on the first n_frames and determines the number of flies and builds the estimator.
@@ -53,15 +69,18 @@ class Tracker:
 
         return n_flies, locations, initial_frame
 
-    def localize(self, capture, mask, n_flies, initial_position, n_frames):
+    def localize(self, capture, mask, n_flies, initial_position, n_frames, threshold=120):
         locations = [initial_position]
         estimator = KMeans(n_clusters=n_flies, n_init=1) # we do a lot the first time to make sure we get it right
         
         for _ in np.arange(n_frames):
             # Load as grayscale, apply mask, find nonzero, all inplace for speed,
             ret, image = capture.read()
+            if ret is False:
+                break # If it didnt read an image, we're finished.
+
             image = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
-            fly_pixels = cv.findNonZero(cv.bitwise_and((image < 120).astype('uint8'), mask)).squeeze() 
+            fly_pixels = cv.findNonZero(cv.bitwise_and((image < threshold).astype('uint8'), mask)).squeeze() 
 
             # Set initial centroids as previous frame' locations and do kmeans
             estimator.init = locations[-1]
