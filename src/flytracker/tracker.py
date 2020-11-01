@@ -15,14 +15,13 @@ class Tracker:
             self.mask = self.mask.astype('uint8')
 
         self.n_flies = None
-        self.initial_frame = None
 
     def run(self, n_frames=0, n_initialize=100, n_per_batch=10000):
         capture = cv.VideoCapture(self.movie_path)
         if self.mask is None:
             self.mask = np.ones((int(capture.get(4)), int(capture.get(3))), dtype='uint8')
 
-        self.n_flies, initial_positions, self.initial_frame = self.initialize(capture, n_initialize, self.mask)     
+        self.n_flies, initial_positions, initial_frame = self.initialize(capture, n_initialize, self.mask)     
 
         # We localize in batches
         batch = 0
@@ -33,7 +32,7 @@ class Tracker:
                 n_batch = n_per_batch
 
             locations = self.localize(capture, self.mask, self.n_flies, initial_positions, n_batch)  # Localizing flies
-            dataset = self.post_process(locations, self.initial_frame + batch * n_per_batch)  # Postprocessing
+            dataset = self.post_process(locations, initial_frame + batch * n_per_batch)  # Postprocessing
             output_path = path.join(self.output_path, f'df_batch_{batch}.hdf')
             dataset.to_hdf(output_path, 'df')
 
