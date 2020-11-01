@@ -52,6 +52,8 @@ MANIFEST
 .mypy_cache/
 
 *.h264
+*.csv
+*.hdf
 
 *.mp4
 
