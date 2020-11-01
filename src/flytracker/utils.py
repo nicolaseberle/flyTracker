@@ -18,6 +18,20 @@ class FourArenasQRCodeMask:
         
         return mask
 
+class SixteenArenasMask:
+    """Contains mask for four arenas with QR code."""
+    @property
+    def mask(self):
+        mask = np.ones((1080, 1280), dtype=np.bool) # assumes 1080 x 1280 resolution
+        mask[:60, :] = 0 
+        mask[-60:, :] = 0 
+        mask[:, :120] = 0
+        mask[:, -180:] = 0
+        
+        return mask
+
+
+
 @pd.api.extensions.register_dataframe_accessor("groups")
 class Groups:
     def __init__(self, pandas_obj):
