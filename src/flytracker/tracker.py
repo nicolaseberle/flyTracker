@@ -12,16 +12,20 @@ class Tracker:
 
         self.mask = mask
         if self.mask is not None:
-            self.mask = self.mask.astype('uint8')
+            self.mask = self.mask.astype("uint8")
 
         self.n_flies = None
 
     def run(self, n_frames=0, n_initialize=100, n_per_batch=10000):
         capture = cv.VideoCapture(self.movie_path)
         if self.mask is None:
-            self.mask = np.ones((int(capture.get(4)), int(capture.get(3))), dtype='uint8')
+            self.mask = np.ones(
+                (int(capture.get(4)), int(capture.get(3))), dtype="uint8"
+            )
 
-        self.n_flies, initial_positions, initial_frame = self.initialize(capture, n_initialize, self.mask)     
+        self.n_flies, initial_positions, initial_frame = self.initialize(
+            capture, n_initialize, self.mask
+        )
 
         # We localize in batches
         batch = 0
@@ -31,19 +35,23 @@ class Tracker:
             else:
                 n_batch = n_per_batch
 
-            locations = self.localize(capture, self.mask, self.n_flies, initial_positions, n_batch)  # Localizing flies
-            dataset = self.post_process(locations, initial_frame + batch * n_per_batch)  # Postprocessing
-            output_path = path.join(self.output_path, f'df_batch_{batch}.hdf')
-            dataset.to_hdf(output_path, 'df')
+            locations = self.localize(
+                capture, self.mask, self.n_flies, initial_positions, n_batch
+            )  # Localizing flies
+            dataset = self.post_process(
+                locations, initial_frame + batch * n_per_batch
+            )  # Postprocessing
+            output_path = path.join(self.output_path, f"df_batch_{batch}.hdf")
+            dataset.to_hdf(output_path, "df")
 
             # If our batch is incomplete, we're finished
-            if (len(locations) < n_per_batch):
+            if len(locations) < n_per_batch:
                 break
             else:
                 batch += 1
                 initial_positions = locations[-1]
-    
-        return dataset # useful for developing
+
+        return dataset  # useful for developing
 
     # Logic functions below
     def initialize(self, capture, n_frames, mask):
@@ -60,7 +68,9 @@ class Tracker:
             n_blobs.append(len(keypoints))
 
             if len(n_blobs) == n_frames:
-                n_flies = int(np.median(n_blobs)) # we define number of flies as median number found over first n frames
+                n_flies = int(
+                    np.median(n_blobs)
+                )  # we define number of flies as median number found over first n frames
             if (len(n_blobs) >= n_frames) and (n_blobs[-1] == n_flies):
                 locations = np.array([keypoint.pt for keypoint in keypoints])
                 initial_frame = frame_idx
@@ -68,18 +78,24 @@ class Tracker:
 
         return n_flies, locations, initial_frame
 
-    def localize(self, capture, mask, n_flies, initial_position, n_frames, threshold=120):
+    def localize(
+        self, capture, mask, n_flies, initial_position, n_frames, threshold=120
+    ):
         locations = [initial_position]
-        estimator = KMeans(n_clusters=n_flies, n_init=1) # we do a lot the first time to make sure we get it right
-        
+        estimator = KMeans(
+            n_clusters=n_flies, n_init=1
+        )  # we do a lot the first time to make sure we get it right
+
         for _ in np.arange(n_frames):
             # Load as grayscale, apply mask, find nonzero, all inplace for speed,
             ret, image = capture.read()
             if ret is False:
-                break # If it didnt read an image, we're finished.
+                break  # If it didnt read an image, we're finished.
 
             image = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
-            fly_pixels = cv.findNonZero(cv.bitwise_and((image < threshold).astype('uint8'), mask)).squeeze() 
+            fly_pixels = cv.findNonZero(
+                cv.bitwise_and((image < threshold).astype("uint8"), mask)
+            ).squeeze()
 
             # Set initial centroids as previous frame' locations and do kmeans
             estimator.init = locations[-1]
@@ -89,9 +105,21 @@ class Tracker:
     def post_process(self, locations, initial_frame):
         n_frames = len(locations)
         n_flies = len(locations[0])
-        identities = (np.arange(n_flies)[None, :] * np.ones((n_frames, n_flies))).reshape(-1, 1) # we get free tracking from the kmeans
-        frames = (np.arange(initial_frame, n_frames + initial_frame)[:, None] * np.ones((n_frames, n_flies))).reshape(-1, 1)
-        df = pd.DataFrame(np.concatenate([frames, identities, np.concatenate(locations, axis=0)], axis=1), columns=['frame', 'ID', 'x', 'y'])
+        identities = (
+            np.arange(n_flies)[None, :] * np.ones((n_frames, n_flies))
+        ).reshape(
+            -1, 1
+        )  # we get free tracking from the kmeans
+        frames = (
+            np.arange(initial_frame, n_frames + initial_frame)[:, None]
+            * np.ones((n_frames, n_flies))
+        ).reshape(-1, 1)
+        df = pd.DataFrame(
+            np.concatenate(
+                [frames, identities, np.concatenate(locations, axis=0)], axis=1
+            ),
+            columns=["frame", "ID", "x", "y"],
+        )
         return df
 
     @property
