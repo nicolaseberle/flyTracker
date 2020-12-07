@@ -3,6 +3,7 @@ import cv2 as cv
 import pandas as pd
 from sklearn.cluster import KMeans
 from os import path
+import time
 
 
 class Tracker:
@@ -86,6 +87,7 @@ class Tracker:
             n_clusters=n_flies, n_init=1
         )  # we do a lot the first time to make sure we get it right
 
+        t_start = time.time()
         for _ in np.arange(n_frames):
             # Load as grayscale, apply mask, find nonzero, all inplace for speed,
             ret, image = capture.read()
@@ -99,7 +101,9 @@ class Tracker:
 
             # Set initial centroids as previous frame' locations and do kmeans
             estimator.init = locations[-1]
-            locations.append(estimator.fit(fly_pixels).cluster_centers_)
+            # locations.append(estimator.fit(fly_pixels).cluster_centers_)
+        t_end = time.time()
+        print(t_end - t_start)
         return locations
 
     def post_process(self, locations, initial_frame):
@@ -143,3 +147,21 @@ class Tracker:
         params.filterByInertia = False
 
         return params
+
+
+if __name__ == "__main__":
+    from flytracker.tracker import Tracker
+    import numpy as np
+
+    mask = np.ones((1080, 1280), dtype=np.bool)  # assumes 1080 x 1280 resolution
+    mask[:110, :] = 0
+    mask[-110:, :] = 0
+    mask[:, :180] = 0
+    mask[:, -260:] = 0
+
+    path = "/home/gert-jan/Documents/flyTracker/data/testing_data/4arenas/seq_1.h264"
+    tracker = Tracker(
+        mask=mask, movie_path=path, output_path="~Documents/flyTracker/tests"
+    )
+    dataset = tracker.run(n_frames=1000)
+
