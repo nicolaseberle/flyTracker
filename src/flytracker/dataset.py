@@ -78,6 +78,7 @@ class VideoDataset(torch.utils.data.IterableDataset):
 if __name__ == "__main__":
     from flytracker.utils import FourArenasQRCodeMask
     from torch.utils.data import DataLoader
+    import time
 
     mask = FourArenasQRCodeMask().mask
     path = "/home/gert-jan/Documents/flyTracker/data/movies/4arenas_QR.h264"
@@ -85,7 +86,10 @@ if __name__ == "__main__":
     dataset = VideoDataset(path, mask)
     loader = DataLoader(dataset, batch_size=1, pin_memory=True)
 
+    t_start = time.time()
     for batch_idx, sample in enumerate(loader):
-        sample = sample.cuda(non_blocking=True)
+        # sample = sample.cuda(non_blocking=True)
         if batch_idx == 1000:
             break
+    t_end = time.time()
+    print(t_end - t_start)
