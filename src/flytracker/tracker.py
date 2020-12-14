@@ -2,8 +2,9 @@ import numpy as np
 import cv2 as cv
 import pandas as pd
 from sklearn.cluster import KMeans
-from os import path
+from os.path import join
 import time
+from typing import Tuple
 
 
 class Tracker:
@@ -19,6 +20,12 @@ class Tracker:
 
     def run(self, n_frames=0, n_initialize=100, n_per_batch=10000):
         capture = cv.VideoCapture(self.movie_path)
+        image_size = (
+            int(capture.get(cv.CAP_PROP_FRAME_WIDTH)),
+            int(capture.get(cv.CAP_PROP_FRAME_HEIGHT)),
+        )
+        self.undistort_map = self.construct_undistort_map(image_size)
+
         if self.mask is None:
             self.mask = np.ones(
                 (int(capture.get(4)), int(capture.get(3))), dtype="uint8"
@@ -42,7 +49,7 @@ class Tracker:
             dataset = self.post_process(
                 locations, initial_frame + batch * n_per_batch
             )  # Postprocessing
-            output_path = path.join(self.output_path, f"df_batch_{batch}.hdf")
+            output_path = join(self.output_path, f"df_batch_{batch}.hdf")
             dataset.to_hdf(output_path, "df")
 
             # If our batch is incomplete, we're finished
@@ -65,6 +72,9 @@ class Tracker:
         n_blobs = []
         for frame_idx in np.arange(2 * n_frames):
             image = cv.cvtColor(capture.read()[1], cv.COLOR_BGR2GRAY)
+            image = cv.remap(
+                image, *self.undistort_map, cv.INTER_LINEAR
+            )  # fixing camera distortion
             keypoints = blob_detector.detect(image * mask)  # get keypoints
             n_blobs.append(len(keypoints))
 
@@ -95,6 +105,9 @@ class Tracker:
                 break  # If it didnt read an image, we're finished.
 
             image = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
+            image = cv.remap(
+                image, *self.undistort_map, cv.INTER_LINEAR
+            )  # fixing camera distor
             fly_pixels = cv.findNonZero(
                 cv.bitwise_and((image < threshold).astype("uint8"), mask)
             ).squeeze()
@@ -148,6 +161,19 @@ class Tracker:
 
         return params
 
+    @staticmethod
+    def construct_undistort_map(
+        image_size: Tuple[int, int]
+    ) -> Tuple[np.ndarray, np.ndarray]:
+
+        folder = "/home/gert-jan/Documents/flyTracker/data/distortion_maps/"
+        mtx = np.load(join(folder, "mtx_file.npy"))
+        dist = np.load(join(folder, "dist_file.npy"))
+        newcameramtx = np.load(join(folder, "newcameramtx_file.npy"))
+
+        map = cv.initUndistortRectifyMap(mtx, dist, None, newcameramtx, image_size, 5)
+        return map
+
 
 if __name__ == "__main__":
     from flytracker.tracker import Tracker
@@ -161,7 +187,7 @@ if __name__ == "__main__":
 
     path = "/home/gert-jan/Documents/flyTracker/data/testing_data/4arenas/seq_1.h264"
     tracker = Tracker(
-        mask=mask, movie_path=path, output_path="~Documents/flyTracker/tests"
+        mask=mask, movie_path=path, output_path="~/Documents/flyTracker/tests/"
     )
     dataset = tracker.run(n_frames=1000)
 
