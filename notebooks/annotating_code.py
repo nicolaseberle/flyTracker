@@ -29,7 +29,7 @@ def construct_undistort_map(image_size, folder):
     return mapping
 
 
-def setup_loader(movie_loc, mapping_folder):
+def setup_loader(movie_loc, mapping_folder, initial_frame=0):
     """Returns function which returns preprocessed image when called."""
 
     def load_fn(capture, mapping):
@@ -45,6 +45,7 @@ def setup_loader(movie_loc, mapping_folder):
 
     # Set up capture
     cap = cv2.VideoCapture(movie_loc)
+    cap.set(1, initial_frame)  # setting initial frame
     image_size = (
         int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
         int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)),
@@ -66,37 +67,37 @@ def setup_writer(output_loc, image_size, fps=30, color=True):
     return writer
 
 
-def update_mask(mask, df, frame_idx):
+def update_mask(mask, df_n_minus_one, df_n):
     def write_mask(mask, flies):
         # flies should be list with entry for each fly,
-        # each entry a 2 x 2 array; first axis time 2nd axis position
-
+        # each entry should be a tuple of tuples.
         palette = color_palette("Paired")
         color = lambda idx: tuple(color * 255 for color in palette[idx % len(palette)])
 
         for idx, position in enumerate(flies):
-            mask = cv2.line(
-                mask, tuple(position[0]), tuple(position[1]), color(idx), thickness=1,
-            )
+            mask = cv2.line(mask, position[0], position[1], color(idx), thickness=1,)
         return mask
 
-    # Extracting local data
-    local_df = df.query(f"{frame_idx - 1} <= frame <= {frame_idx}")
+    # Turn dataframe data into tuple ready to give to opencv
+    df_to_tuple = lambda df: tuple(df[["x", "y"]].to_numpy(dtype=np.int32).squeeze())
+    # Turn data into list of tuples of tuples
+    # List corresponds to flies, outer tuple to old/new position
+    # inner tuple to (x, y)
 
-    # Only update if we have more than 1 position.
-    if local_df["frame"].unique().shape[0] == 2:
-        # Grouping per fly and putting it into right form for write_mask
-        fly_locs = [
-            fly_info[["x", "y"]].to_numpy(dtype=np.int32)
-            for _, fly_info in local_df.groupby(by="ID")
-        ]
-        mask = write_mask(mask, fly_locs)
+    fly_locs = [
+        (df_to_tuple(df_n_minus_one_ID), df_to_tuple(df_n_ID))
+        for (_, df_n_minus_one_ID), (_, df_n_ID) in zip(
+            df_n_minus_one.groupby("ID"), df_n.groupby("ID")
+        )
+    ]
+
+    mask = write_mask(mask, fly_locs)
     return mask
 
 
-def touching(image, df, frame_idx, touching_distance=15):
+def touching(image, df_n, touching_distance=15):
     """ Checks if each fly is within touching_distance of other fly"""
-    local_locs = df.query(f"frame == {frame_idx}")[["x", "y"]].to_numpy()
+    local_locs = df_n[["x", "y"]].to_numpy()
     dist_matrix = distance_matrix(local_locs, local_locs)
 
     # minimum 2 cause of diagonal
@@ -105,14 +106,31 @@ def touching(image, df, frame_idx, touching_distance=15):
     for idx in np.where(touching)[0]:
         image = cv2.circle(
             image,
-            tuple(
-                df.query(f"frame == {frame_idx} and ID == {idx}")[["x", "y"]]
-                .to_numpy(dtype=np.int32)
-                .squeeze()
-            ),
+            tuple(df_n[["x", "y"]].iloc[idx, :].to_numpy(dtype=np.int32).squeeze()),
             radius=5,
             color=(0, 0, 255),
             thickness=2,
         )
 
     return image
+
+
+def write_ID(image, df_n):
+    def add_fly_ID(image, loc, ID):
+        return cv2.putText(
+            image,
+            text=f"{ID}",
+            org=(loc[0] - 5, loc[1] - 5),
+            fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+            fontScale=0.4,
+            color=(0, 0, 0),
+            thickness=1,
+        )
+
+    df_to_tuple = lambda df: tuple(df[["x", "y"]].to_numpy(dtype=np.int32).squeeze())
+    fly_ID = [(int(ID), df_to_tuple(df_n_ID)) for ID, df_n_ID in df_n.groupby("ID")]
+
+    for (ID, loc) in fly_ID:
+        image = add_fly_ID(image, loc, ID)
+    return image
+
