@@ -95,42 +95,34 @@ def update_mask(mask, df_n_minus_one, df_n):
     return mask
 
 
-def touching(image, df_n, touching_distance=15):
-    """ Checks if each fly is within touching_distance of other fly"""
-    local_locs = df_n[["x", "y"]].to_numpy()
-    dist_matrix = distance_matrix(local_locs, local_locs)
+def write_ID(image, df_n, touching_distance=15):
+    def add_fly_ID(image, loc, ID, touching):
+        if touching == True:
+            color = (0, 0, 255)  # red
+        else:
+            color = (255, 0, 0)  # blue
 
-    # minimum 2 cause of diagonal
-    touching = np.sum(dist_matrix < touching_distance, axis=0) >= 2
-
-    for idx in np.where(touching)[0]:
-        image = cv2.circle(
-            image,
-            tuple(df_n[["x", "y"]].iloc[idx, :].to_numpy(dtype=np.int32).squeeze()),
-            radius=5,
-            color=(0, 0, 255),
-            thickness=2,
-        )
-
-    return image
-
-
-def write_ID(image, df_n):
-    def add_fly_ID(image, loc, ID):
         return cv2.putText(
             image,
             text=f"{ID}",
             org=(loc[0] - 5, loc[1] - 5),
             fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-            fontScale=0.4,
-            color=(0, 0, 0),
+            fontScale=0.5,
+            color=color,
             thickness=1,
         )
 
+    # Get (ID, location) tuple
     df_to_tuple = lambda df: tuple(df[["x", "y"]].to_numpy(dtype=np.int32).squeeze())
     fly_ID = [(int(ID), df_to_tuple(df_n_ID)) for ID, df_n_ID in df_n.groupby("ID")]
 
+    # Find out if they're touching
+    local_locs = df_n[["x", "y"]].to_numpy()
+    dist_matrix = distance_matrix(local_locs, local_locs)
+    # minimum 2 cause diagonal element are always 0
+    touching = np.sum(dist_matrix < touching_distance, axis=0) >= 2
+
     for (ID, loc) in fly_ID:
-        image = add_fly_ID(image, loc, ID)
+        image = add_fly_ID(image, loc, ID, touching[ID])
     return image
 

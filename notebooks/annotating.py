@@ -15,6 +15,7 @@ mapping_folder = "/home/gert-jan/Documents/flyTracker/data/distortion_maps/"
 
 # %% Setup
 df = pd.read_hdf(df_loc, key="df")
+# this is important; we expect a sorted daatframe
 df = df.sort_values(by=["frame", "ID"])
 
 mask = None
@@ -39,7 +40,7 @@ for (idx, df_n_minus_one), (_, df_n) in zip(n_minus_one_iterator, n_iterator):
         mask = np.zeros_like(image)
 
     image = add_frame_info(image, f"frame: {df_n.frame.iloc[0]}")
-    image = touching(image, df_n, touching_distance=15)
+    image = write_ID(image, df_n)
 
     mask = update_mask(mask, df_n_minus_one, df_n)
     new_image = image * (np.sum(mask, axis=-1) == 0)[:, :, None] + mask
@@ -47,7 +48,6 @@ for (idx, df_n_minus_one), (_, df_n) in zip(n_minus_one_iterator, n_iterator):
         mask, 0.99, image * (np.sum(mask, axis=-1) != 0)[:, :, None], 0.01, -5
     )
 
-    new_image = write_ID(new_image, df_n)
     writer.write(new_image)
 
     if idx == max_frames:
