@@ -1,9 +1,9 @@
 # %% Imports
 import numpy as np
 import cv2
-import pandas as pd
 from annotating_code import *
 from itertools import count
+import pandas as pd
 
 
 # %% Settings
@@ -31,11 +31,12 @@ for frame_idx in np.arange(400):  # count():
 
     if mask is None:
         mask = np.zeros_like(image)
+
     image = add_frame_info(image, f"frame: {frame_idx}")
+    image = touching(image, df, frame_idx, touching_distance=15)
+
     mask = update_mask(mask, df, frame_idx)
-
     new_image = image * (np.sum(mask, axis=-1) == 0)[:, :, None] + mask
-
     mask = cv2.addWeighted(
         mask, 0.99, image * (np.sum(mask, axis=-1) != 0)[:, :, None], 0.01, -5
     )

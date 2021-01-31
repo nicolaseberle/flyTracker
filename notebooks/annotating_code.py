@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 from os.path import join
 from seaborn import color_palette
+from scipy.spatial import distance_matrix
 
 
 def add_frame_info(img, text):
@@ -75,7 +76,7 @@ def update_mask(mask, df, frame_idx):
 
         for idx, position in enumerate(flies):
             mask = cv2.line(
-                mask, tuple(position[0]), tuple(position[1]), color(idx), thickness=2,
+                mask, tuple(position[0]), tuple(position[1]), color(idx), thickness=1,
             )
         return mask
 
@@ -92,3 +93,26 @@ def update_mask(mask, df, frame_idx):
         mask = write_mask(mask, fly_locs)
     return mask
 
+
+def touching(image, df, frame_idx, touching_distance=15):
+    """ Checks if each fly is within touching_distance of other fly"""
+    local_locs = df.query(f"frame == {frame_idx}")[["x", "y"]].to_numpy()
+    dist_matrix = distance_matrix(local_locs, local_locs)
+
+    # minimum 2 cause of diagonal
+    touching = np.sum(dist_matrix < touching_distance, axis=0) >= 2
+
+    for idx in np.where(touching)[0]:
+        image = cv2.circle(
+            image,
+            tuple(
+                df.query(f"frame == {frame_idx} and ID == {idx}")[["x", "y"]]
+                .to_numpy(dtype=np.int32)
+                .squeeze()
+            ),
+            radius=5,
+            color=(0, 0, 255),
+            thickness=2,
+        )
+
+    return image
