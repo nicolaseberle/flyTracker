@@ -24,8 +24,13 @@ def post_process(
     )
 
     # Localizing flies per arena
+    df["arena"] = find_arena(df, n_arenas)
+    return df
+
+
+def find_arena(df, n_arenas):
     x_ave = df.pivot_table(index="ID", columns="frame", values="x").mean(axis=1)
     y_ave = df.pivot_table(index="ID", columns="frame", values="y").mean(axis=1)
     labels = k_means(np.stack([x_ave, y_ave], axis=1), n_arenas)[1]
-    df["arena"] = (labels[None, :] * np.ones((df.frame.unique().size, 1))).flatten()
-    return df
+    arena = (labels[None, :] * np.ones((df.frame.unique().size, 1))).flatten()
+    return arena
