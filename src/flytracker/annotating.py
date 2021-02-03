@@ -35,7 +35,6 @@ def setup_loader(movie_loc, mapping_folder, initial_frame=0):
     def load_fn(capture, mapping):
         # loads image and applies preprocessing
         ret, image = capture.read()
-
         # image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # cause our video uses bgr
         if ret is not False:
             image = cv2.remap(image, *mapping, cv2.INTER_LINEAR)
@@ -61,7 +60,7 @@ def setup_loader(movie_loc, mapping_folder, initial_frame=0):
 
 def setup_writer(output_loc, image_size, fps=30, color=True):
     """Returns writer object."""
-    fourcc = cv2.VideoWriter_fourcc(*"mp4v")  # mp4v, MPJG
+    fourcc = cv2.VideoWriter_fourcc(*"MJPG")
     writer = cv2.VideoWriter(
         filename=output_loc, fourcc=fourcc, fps=fps, frameSize=image_size, isColor=color
     )

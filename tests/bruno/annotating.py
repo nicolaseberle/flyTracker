@@ -1,19 +1,14 @@
 # %% Imports
 import numpy as np
 import cv2
-from annotating_code import *
-from itertools import count
+from flytracker.annotating import *
 import pandas as pd
 
-# import cProfile, pstats, io
-# from pstats import SortKey
 
-# pr = cProfile.Profile()
-# pr.enable()
 # %% Settings
-movie_loc = "/home/gert-jan/Documents/flyTracker/data/testing_data/4arenas/seq_1.mp4"
-output_loc = "/home/gert-jan/Documents/flyTracker/notebooks/annotated_video.mp4"
-df_loc = "/home/gert-jan/Documents/flyTracker/tests/4arenas/df_batch_0.hdf"
+movie_loc = "/home/gert-jan/Documents/flyTracker/data/testing_data/bruno/seq_1.mp4"
+output_loc = "/home/gert-jan/Documents/flyTracker/tests/bruno/annotated_video.avi"
+df_loc = "/home/gert-jan/Documents/flyTracker/tests/bruno/df_new.hdf"
 mapping_folder = "/home/gert-jan/Documents/flyTracker/data/distortion_maps/"
 
 
@@ -34,9 +29,7 @@ n_iterator = df.query(f"frame > {df.frame.min()}").groupby(
 )  # gives data of frame n
 
 # %% Running
-
-
-max_frames = 200
+max_frames = 10 ** 9
 for (idx, df_n_minus_one), (_, df_n) in zip(n_minus_one_iterator, n_iterator):
     image = loader()
     if image is None:
@@ -55,16 +48,12 @@ for (idx, df_n_minus_one), (_, df_n) in zip(n_minus_one_iterator, n_iterator):
     )
 
     writer.write(new_image)
-
+    if idx % 1000 == 0:
+        print(f"Done with frame{idx}")
     if idx == max_frames:
         break
 writer.release()
 
-# pr.disable()
-
-# sortby = SortKey.CUMULATIVE
-# ps = pstats.Stats(pr).sort_stats(sortby)
-# ps.print_stats(20)
 
 # %%
 
