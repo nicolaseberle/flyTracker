@@ -1,60 +1,55 @@
 # %% Imports
 import numpy as np
-import cv2
-from flytracker.annotating import *
-import pandas as pd
+from flytracker.annotating import (
+    parse_data,
+    setup_loader,
+    setup_writer,
+    add_frame_info,
+    write_ID,
+    write_tracks,
+    color_picker,
+)
+
+from itertools import count
 
 
 # %% Settings
-movie_loc = "/home/gert-jan/Documents/flyTracker/data/testing_data/bruno/seq_1.mp4"
-output_loc = "/home/gert-jan/Documents/flyTracker/tests/bruno/annotated_video.mp4"
-df_loc = "/home/gert-jan/Documents/flyTracker/tests/bruno/df_new.hdf"
-mapping_folder = "/home/gert-jan/Documents/flyTracker/data/distortion_maps/"
+movie_loc = "data/testing_data/bruno/seq_1.mp4"
+output_loc = "tests/bruno/annotated_video.mp4"
+df_loc = "tests/bruno/df_new.hdf"
+mapping_folder = "data/distortion_maps/"
+
+touching_distance = 10  # in pixels
+track_length = 4  # in seconds
 
 
-# %% Setup
-df = pd.read_hdf(df_loc, key="df")
-# this is important; we expect a sorted daatframe
-df = df.sort_values(by=["frame", "ID"])
-
-mask = None
+# %% Setting up
+data, n_flies_per_arena = parse_data(df_loc)
+initial_frame = data[0, 0, 0]
+# plus 1 for intiial frame since we plot (n-1, n)
 loader, image_size = setup_loader(
-    movie_loc, mapping_folder, initial_frame=(df.frame.min() + 1)
+    movie_loc, mapping_folder, initial_frame=(initial_frame + 1)
 )
 writer = setup_writer(output_loc, image_size, fps=30)
+mask = np.zeros((*image_size[::-1], 3), dtype=np.uint8)  # TODO: Check different shapes
 
-n_minus_one_iterator = df.groupby("frame")  # gives data of frame n-1
-n_iterator = df.query(f"frame > {df.frame.min()}").groupby(
-    "frame"
-)  # gives data of frame n
 
-# %% Running
 max_frames = 10 ** 9
-for (idx, df_n_minus_one), (_, df_n) in zip(n_minus_one_iterator, n_iterator):
+length = int(np.around(track_length * 30))
+color_fn = lambda ID: color_picker(ID, n_flies_per_arena)
+# %%
+for frame in count(start=1):
+    lower_frame, upper_frame = np.maximum(frame - length, 0), frame
     image = loader()
-    if image is None:
+    if (image is None) or (frame == (max_frames + 1)):
         break  # we're finished
 
-    if mask is None:
-        mask = np.zeros_like(image)
+    image = add_frame_info(image, f"frame: {upper_frame}")
+    # First write tracks so that numbers don't get occluded.
+    image = write_tracks(image, data[lower_frame:upper_frame], color_fn)
+    image = write_ID(image, data[upper_frame], touching_distance=touching_distance)
+    writer.write(image)
 
-    image = add_frame_info(image, f"frame: {df_n.frame.iloc[0]}")
-    image = write_ID(image, df_n)
-
-    mask = update_mask(mask, df_n_minus_one, df_n)
-    new_image = image * (np.sum(mask, axis=-1) == 0)[:, :, None] + mask
-    mask = cv2.addWeighted(
-        mask, 0.99, image * (np.sum(mask, axis=-1) != 0)[:, :, None], 0.01, -5
-    )
-
-    writer.write(new_image)
-    if idx % 1000 == 0:
-        print(f"Done with frame{idx}")
-    if idx == max_frames:
-        break
+    if frame % 1000 == 0:
+        print(f"Done with frame {frame}")
 writer.release()
-
-
-# %%
-
-# %%
