@@ -2,7 +2,7 @@
 import cv2
 import numpy as np
 from os.path import join
-from seaborn import color_palette
+
 from scipy.spatial import distance_matrix
 import pandas as pd
 
@@ -78,21 +78,6 @@ def setup_writer(output_loc, image_size, fps=30, color=True):
     return writer
 
 
-def update_mask(mask, frame_info_i, frame_info_j):
-    palette = color_palette("Paired")
-    color = lambda idx: tuple(color * 255 for color in palette[idx % len(palette)])
-
-    for fly_frame_i, fly_frame_j in zip(frame_info_i, frame_info_j):
-        mask = cv2.line(
-            mask,
-            tuple(fly_frame_i[[2, 3]]),
-            tuple(fly_frame_j[[2, 3]]),
-            color(fly_frame_j[1]),
-            thickness=1,
-        )
-    return mask
-
-
 def write_ID(image, frame_info, touching_distance=15):
     def add_fly_ID(image, loc, ID, touching):
         if touching == True:
@@ -117,3 +102,10 @@ def write_ID(image, frame_info, touching_distance=15):
     for fly in frame_info:
         image = add_fly_ID(image, fly[[2, 3]], fly[1], touching[fly[1]])
     return image
+
+
+def write_tracks(image, data, color_fn):
+    for idx in np.arange(data.shape[1]):
+        image = cv2.polylines(image, [data[:, idx, [2, 3]]], False, color_fn(idx), 1)
+    return image
+

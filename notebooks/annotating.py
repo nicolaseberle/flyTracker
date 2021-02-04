@@ -7,12 +7,13 @@ from flytracker.annotating import (
     setup_writer,
     add_frame_info,
     write_ID,
-    update_mask,
+    write_tracks,
 )
 
 from itertools import count
 import cProfile
 import pstats
+from seaborn import color_palette
 
 pr = cProfile.Profile()
 pr.enable()
@@ -22,9 +23,11 @@ movie_loc = "data/testing_data/bruno/seq_1.mp4"
 output_loc = "notebooks/annotated_video.mp4"
 df_loc = "tests/bruno/df_new.hdf"
 mapping_folder = "data/distortion_maps/"
-touching_distance = 12
+touching_distance = 12  # in pixels
+track_length = 5  # in seconds
 
 
+# %% Setting up
 data = parse_data(df_loc)
 initial_frame = data[0, 0, 0]
 # plus 1 for intiial frame since we plot (n-1, n)
@@ -36,8 +39,12 @@ mask = np.zeros((*image_size[::-1], 3), dtype=np.uint8)  # TODO: Check different
 
 
 max_frames = 1000
-length = 1
+length = int(np.around(track_length * 30))
 
+palette = color_palette("Paired")
+color_fn = lambda idx: tuple(color * 255 for color in palette[idx % len(palette)])
+
+# %%
 for frame in count(start=1):
     lower_frame, upper_frame = np.maximum(frame - length, 0), frame
     image = loader()
@@ -46,15 +53,7 @@ for frame in count(start=1):
 
     image = add_frame_info(image, f"frame: {upper_frame}")
     image = write_ID(image, data[upper_frame], touching_distance=touching_distance)
-
-    mask = update_mask(mask, data[lower_frame], data[upper_frame])
-    image = cv2.addWeighted(
-        image, 1.0, mask, 1.0, gamma=0
-    )  # image * (np.sum(mask, axis=-1) == 0)[:, :, None] + mask
-    # mask = cv2.addWeighted(
-    #    mask, 0.99, image * (np.sum(mask, axis=-1) != 0)[:, :, None], 0.01, -5
-    # )
-
+    image = write_tracks(image, data[lower_frame:upper_frame], color_fn)
     writer.write(image)
 writer.release()
 
