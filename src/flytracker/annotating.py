@@ -5,16 +5,53 @@ from os.path import join
 
 from scipy.spatial import distance_matrix
 import pandas as pd
+from seaborn import color_palette
 
 
 def parse_data(df_location):
     df = pd.read_hdf(df_location, key="df")
-    df = df.sort_values(by=["frame", "ID"])
+
     n_flies = df.ID.unique().size
+    n_frames = df.frame.unique().size
     n_features = df.shape[1]
+
+    # We sort the arenas from upper left to lower right, row by row
+    # TODO: Move to postprocessing and clean up.
+
+    df = df.sort_values(by=["arena"])
+    arena_means = np.stack(
+        [
+            np.around(np.mean(arena_df[["x", "y"]].to_numpy(), axis=0), decimals=-2)
+            for _, arena_df in df.query(f"frame == {df.frame.min()}").groupby("arena")
+        ],
+        axis=0,
+    )
+    n_arenas = arena_means.shape[0]
+    new_arenas = np.array(
+        [
+            np.argmax(np.lexsort((arena_means[:, 0], arena_means[:, 1])) == idx)
+            for idx in np.arange(n_arenas)
+        ]
+    )
+
+    df["arena"] = np.repeat(new_arenas, int(df.shape[0] / arena_means.shape[0]))
+
+    # New ID's so flies [0, n_flies] are in arena 0
+    # [n_flies, 2 x n_flies] in arena 1 etc.
+    # TODO: Put in postprocessing of tracker.
+
+    df = df.sort_values(by=["frame", "arena", "ID"])
+    df["ID"] = np.tile(np.arange(n_flies), n_frames)
+    df = df.sort_values(by=["frame", "ID"])
+
+    # Changing to numpy array for speed
     data = df.to_numpy().reshape(-1, n_flies, n_features)
     data = np.around(data).astype(int)  # everything must happen with ints
-    return data
+
+    max_n_flies_per_arena = np.max(
+        [df.query(f"arena == {arena}").ID.unique().size for arena in df.arena.unique()]
+    )
+    return data, max_n_flies_per_arena
 
 
 def add_frame_info(img, text):
@@ -109,3 +146,14 @@ def write_tracks(image, data, color_fn):
         image = cv2.polylines(image, [data[:, idx, [2, 3]]], False, color_fn(idx), 1)
     return image
 
+
+def color_picker(ID, n_flies_per_arena, palette=color_palette("Paired")):
+    assert n_flies_per_arena < len(
+        palette
+    ), "More flies per arena than colors in palette."
+    # turning into rgb for opencv
+    color = tuple(color * 255 for color in palette[ID % n_flies_per_arena])
+    return color
+
+
+# %%

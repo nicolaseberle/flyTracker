@@ -1,6 +1,5 @@
 # %% Imports
 import numpy as np
-import cv2
 from flytracker.annotating import (
     parse_data,
     setup_loader,
@@ -8,12 +7,13 @@ from flytracker.annotating import (
     add_frame_info,
     write_ID,
     write_tracks,
+    color_picker,
 )
 
 from itertools import count
 import cProfile
 import pstats
-from seaborn import color_palette
+
 
 pr = cProfile.Profile()
 pr.enable()
@@ -28,7 +28,7 @@ track_length = 5  # in seconds
 
 
 # %% Setting up
-data = parse_data(df_loc)
+data, n_flies_per_arena = parse_data(df_loc)
 initial_frame = data[0, 0, 0]
 # plus 1 for intiial frame since we plot (n-1, n)
 loader, image_size = setup_loader(
@@ -40,10 +40,7 @@ mask = np.zeros((*image_size[::-1], 3), dtype=np.uint8)  # TODO: Check different
 
 max_frames = 1000
 length = int(np.around(track_length * 30))
-
-palette = color_palette("Paired")
-color_fn = lambda idx: tuple(color * 255 for color in palette[idx % len(palette)])
-
+color_fn = lambda ID: color_picker(ID, n_flies_per_arena)
 # %%
 for frame in count(start=1):
     lower_frame, upper_frame = np.maximum(frame - length, 0), frame
@@ -52,8 +49,9 @@ for frame in count(start=1):
         break  # we're finished
 
     image = add_frame_info(image, f"frame: {upper_frame}")
-    image = write_ID(image, data[upper_frame], touching_distance=touching_distance)
+    # First write tracks so that numbers don't get occluded.
     image = write_tracks(image, data[lower_frame:upper_frame], color_fn)
+    image = write_ID(image, data[upper_frame], touching_distance=touching_distance)
     writer.write(image)
 writer.release()
 
