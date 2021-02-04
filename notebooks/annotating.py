@@ -10,8 +10,7 @@ from flytracker.annotating import (
     update_mask,
 )
 
-import pandas as pd
-
+from itertools import count
 import cProfile
 import pstats
 
@@ -23,6 +22,7 @@ movie_loc = "data/testing_data/bruno/seq_1.mp4"
 output_loc = "notebooks/annotated_video.mp4"
 df_loc = "tests/bruno/df_new.hdf"
 mapping_folder = "data/distortion_maps/"
+touching_distance = 12
 
 
 data = parse_data(df_loc)
@@ -36,15 +36,18 @@ mask = np.zeros((*image_size[::-1], 3), dtype=np.uint8)  # TODO: Check different
 
 
 max_frames = 1000
-for idx, (frame_info_i, frame_info_j) in enumerate(zip(data, data[1:])):
+length = 1
+
+for frame in count(start=1):
+    lower_frame, upper_frame = np.maximum(frame - length, 0), frame
     image = loader()
-    if (image is None) or (idx == max_frames):
+    if (image is None) or (frame == (max_frames + 1)):
         break  # we're finished
 
-    image = add_frame_info(image, f"frame: {frame_info_j[0, 0]}")
-    image = write_ID(image, frame_info_j)
+    image = add_frame_info(image, f"frame: {upper_frame}")
+    image = write_ID(image, data[upper_frame], touching_distance=touching_distance)
 
-    mask = update_mask(mask, frame_info_i, frame_info_j)
+    mask = update_mask(mask, data[lower_frame], data[upper_frame])
     image = cv2.addWeighted(
         image, 1.0, mask, 1.0, gamma=0
     )  # image * (np.sum(mask, axis=-1) == 0)[:, :, None] + mask
