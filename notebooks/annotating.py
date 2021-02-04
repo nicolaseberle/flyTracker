@@ -1,5 +1,6 @@
 # %% Imports
 import numpy as np
+import os
 from flytracker.annotating import (
     parse_data,
     setup_loader,
@@ -55,7 +56,12 @@ for frame in count(start=1):
     writer.write(image)
 writer.release()
 
+# Compressing to h264 with ffmpeg
+compressed_loc = output_loc.split(".")[0] + "_compressed.mp4"
+os.system(f"ffmpeg -i {output_loc} -an -vcodec libx264 -crf 23 {compressed_loc}")
+
 pr.disable()
 sortby = pstats.SortKey.CUMULATIVE
 ps = pstats.Stats(pr).sort_stats(sortby)
 ps.print_stats(20)
+

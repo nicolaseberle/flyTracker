@@ -11,7 +11,7 @@ from flytracker.annotating import (
 )
 
 from itertools import count
-
+import os
 
 # %% Settings
 movie_loc = "data/testing_data/bruno/seq_1.mp4"
@@ -53,3 +53,7 @@ for frame in count(start=1):
     if frame % 1000 == 0:
         print(f"Done with frame {frame}")
 writer.release()
+
+# Compressing to h264 with ffmpeg
+compressed_loc = output_loc.split(".")[0] + "_compressed.mp4"
+os.system(f"ffmpeg -i {output_loc} -an -vcodec libx264 -crf 23 {compressed_loc}")
