@@ -121,7 +121,7 @@ def setup_writer(output_loc, image_size, fps=30, color=True):
     return writer
 
 
-def write_ID(image, frame_info, touching_distance=15):
+def write_ID(image, frame_info, touching_distance=10):
     def add_fly_ID(image, loc, ID, touching):
         if touching == True:
             color = (0, 0, 255)  # red
