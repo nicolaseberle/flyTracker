@@ -20,7 +20,7 @@ pr.enable()
 
 # %% Settings
 movie_loc = "data/testing_data/bruno/seq_1.mp4"
-output_loc = "tests/bruno/annotated_video.mp4"
+output_loc = "notebooks/annotated_video.mp4"
 df_loc = "tests/bruno/df_new.hdf"
 mapping_folder = "data/distortion_maps/"
 
