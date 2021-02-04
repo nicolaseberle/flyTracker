@@ -4,59 +4,71 @@ import numpy as np
 from os.path import join
 
 from scipy.spatial import distance_matrix
-import pandas as pd
 from seaborn import color_palette
+import os
+from itertools import count
 
 
-def parse_data(df_location):
-    df = pd.read_hdf(df_location, key="df")
+def annotate(
+    df,
+    movie_loc,
+    mapping_folder,
+    output_loc,
+    max_frames=None,
+    track_length=30,
+    touching_distance=10,
+):
 
-    n_flies = df.ID.unique().size
-    n_frames = df.frame.unique().size
-    n_features = df.shape[1]
+    data, n_flies_per_arena = parse_data(df)
 
-    # We sort the arenas from upper left to lower right, row by row
-    # TODO: Move to postprocessing and clean up.
-
-    df = df.sort_values(by=["arena"])
-    arena_means = np.stack(
-        [
-            np.around(np.mean(arena_df[["x", "y"]].to_numpy(), axis=0), decimals=-2)
-            for _, arena_df in df.query(f"frame == {df.frame.min()}").groupby("arena")
-        ],
-        axis=0,
+    initial_frame = data[0, 0, 0]
+    print(data.shape)
+    # plus 1 for intiial frame since we plot (n-1, n)
+    loader, image_size = setup_loader(
+        movie_loc, mapping_folder, initial_frame=(initial_frame + 1)
     )
-    n_arenas = arena_means.shape[0]
-    new_arenas = np.array(
-        [
-            np.argmax(np.lexsort((arena_means[:, 0], arena_means[:, 1])) == idx)
-            for idx in np.arange(n_arenas)
-        ]
-    )
+    writer = setup_writer(output_loc, image_size, fps=30)
 
-    df["arena"] = np.concatenate(
-        [
-            new_arenas[idx] * np.ones((arena_df.shape[0]), dtype=int)
-            for idx, (_, arena_df) in enumerate(df.groupby("arena"))
-        ],
-        axis=0,
-    )  # we enumerate only cause the frame idx is not int
+    if max_frames is None:
+        max_frames = 10 ** 9
 
-    # New ID's so flies [0, n_flies] are in arena 0
-    # [n_flies, 2 x n_flies] in arena 1 etc.
-    # TODO: Put in postprocessing of tracker.
+    length = int(np.around(track_length * 30))
 
-    df = df.sort_values(by=["frame", "arena", "ID"])
-    df["ID"] = np.tile(np.arange(n_flies), n_frames)
-    df = df.sort_values(by=["frame", "ID"])
+    color_fn = lambda ID: color_picker(ID, n_flies_per_arena)
+    # %%
+    for frame in count(start=1):
+        lower_frame, upper_frame = np.maximum(frame - length, 0), frame
+        image = loader()
+        if (image is None) or (frame == (max_frames + 1)):
+            break  # we're finished
 
+        image = add_frame_info(image, f"frame: {upper_frame}")
+        # First write tracks so that numbers don't get occluded.
+        image = write_tracks(image, data[lower_frame:upper_frame], color_fn)
+        image = write_ID(image, data[upper_frame], touching_distance=touching_distance)
+        writer.write(image)
+
+        if frame % 1000 == 0:
+            print(f"Done with frame {frame}")
+    writer.release()
+
+    # Compressing to h264 with ffmpeg
+    compressed_loc = output_loc.split(".")[0] + "_compressed.mp4"
+    os.system(f"ffmpeg -i {output_loc} -an -vcodec libx264 -crf 23 {compressed_loc}")
+
+
+def parse_data(df):
     # Changing to numpy array for speed
+    df = df.sort_values(by=["frame", "arena", "ID"])
+    n_flies = df.ID.unique().size
+    n_features = df.shape[1]
     data = df.to_numpy().reshape(-1, n_flies, n_features)
     data = np.around(data).astype(int)  # everything must happen with ints
 
     max_n_flies_per_arena = np.max(
         [df.query(f"arena == {arena}").ID.unique().size for arena in df.arena.unique()]
     )
+
     return data, max_n_flies_per_arena
 
 
