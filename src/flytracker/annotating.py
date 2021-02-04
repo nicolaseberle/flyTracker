@@ -4,6 +4,17 @@ import numpy as np
 from os.path import join
 from seaborn import color_palette
 from scipy.spatial import distance_matrix
+import pandas as pd
+
+
+def parse_data(df_location):
+    df = pd.read_hdf(df_location, key="df")
+    df = df.sort_values(by=["frame", "ID"])
+    n_flies = df.ID.unique().size
+    n_features = df.shape[1]
+    data = df.to_numpy().reshape(-1, n_flies, n_features)
+    data = np.around(data).astype(int)  # everything must happen with ints
+    return data
 
 
 def add_frame_info(img, text):
@@ -60,42 +71,29 @@ def setup_loader(movie_loc, mapping_folder, initial_frame=0):
 
 def setup_writer(output_loc, image_size, fps=30, color=True):
     """Returns writer object."""
-    fourcc = cv2.VideoWriter_fourcc(*"MJPG")
+    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
     writer = cv2.VideoWriter(
         filename=output_loc, fourcc=fourcc, fps=fps, frameSize=image_size, isColor=color
     )
     return writer
 
 
-def update_mask(mask, df_n_minus_one, df_n):
-    def write_mask(mask, flies):
-        # flies should be list with entry for each fly,
-        # each entry should be a tuple of tuples.
-        palette = color_palette("Paired")
-        color = lambda idx: tuple(color * 255 for color in palette[idx % len(palette)])
+def update_mask(mask, frame_info_i, frame_info_j):
+    palette = color_palette("Paired")
+    color = lambda idx: tuple(color * 255 for color in palette[idx % len(palette)])
 
-        for idx, position in enumerate(flies):
-            mask = cv2.line(mask, position[0], position[1], color(idx), thickness=1,)
-        return mask
-
-    # Turn dataframe data into tuple ready to give to opencv
-    df_to_tuple = lambda df: tuple(df[["x", "y"]].to_numpy(dtype=np.int32).squeeze())
-    # Turn data into list of tuples of tuples
-    # List corresponds to flies, outer tuple to old/new position
-    # inner tuple to (x, y)
-
-    fly_locs = [
-        (df_to_tuple(df_n_minus_one_ID), df_to_tuple(df_n_ID))
-        for (_, df_n_minus_one_ID), (_, df_n_ID) in zip(
-            df_n_minus_one.groupby("ID"), df_n.groupby("ID")
+    for fly_frame_i, fly_frame_j in zip(frame_info_i, frame_info_j):
+        mask = cv2.line(
+            mask,
+            tuple(fly_frame_i[[2, 3]]),
+            tuple(fly_frame_j[[2, 3]]),
+            color(fly_frame_j[1]),
+            thickness=1,
         )
-    ]
-
-    mask = write_mask(mask, fly_locs)
     return mask
 
 
-def write_ID(image, df_n, touching_distance=15):
+def write_ID(image, frame_info, touching_distance=15):
     def add_fly_ID(image, loc, ID, touching):
         if touching == True:
             color = (0, 0, 255)  # red
@@ -112,17 +110,10 @@ def write_ID(image, df_n, touching_distance=15):
             thickness=1,
         )
 
-    # Get (ID, location) tuple
-    df_to_tuple = lambda df: tuple(df[["x", "y"]].to_numpy(dtype=np.int32).squeeze())
-    fly_ID = [(int(ID), df_to_tuple(df_n_ID)) for ID, df_n_ID in df_n.groupby("ID")]
-
-    # Find out if they're touching
-    local_locs = df_n[["x", "y"]].to_numpy()
-    dist_matrix = distance_matrix(local_locs, local_locs)
+    dist_matrix = distance_matrix(frame_info[:, [2, 3]], frame_info[:, [2, 3]])
     # minimum 2 cause diagonal element are always 0
     touching = np.sum(dist_matrix < touching_distance, axis=0) >= 2
-
-    for (ID, loc) in fly_ID:
-        image = add_fly_ID(image, loc, ID, touching[ID])
+    # we just iterate over the rows
+    for fly in frame_info:
+        image = add_fly_ID(image, fly[[2, 3]], fly[1], touching[fly[1]])
     return image
-

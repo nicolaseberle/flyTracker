@@ -1,71 +1,61 @@
 # %% Imports
 import numpy as np
 import cv2
-from annotating_code import *
-from itertools import count
+from flytracker.annotating import (
+    parse_data,
+    setup_loader,
+    setup_writer,
+    add_frame_info,
+    write_ID,
+    update_mask,
+)
+
 import pandas as pd
 
-# import cProfile, pstats, io
-# from pstats import SortKey
+import cProfile
+import pstats
 
-# pr = cProfile.Profile()
-# pr.enable()
+pr = cProfile.Profile()
+pr.enable()
+
 # %% Settings
-movie_loc = "/home/gert-jan/Documents/flyTracker/data/testing_data/4arenas/seq_1.mp4"
-output_loc = "/home/gert-jan/Documents/flyTracker/notebooks/annotated_video.mp4"
-df_loc = "/home/gert-jan/Documents/flyTracker/tests/4arenas/df_batch_0.hdf"
-mapping_folder = "/home/gert-jan/Documents/flyTracker/data/distortion_maps/"
+movie_loc = "data/testing_data/bruno/seq_1.mp4"
+output_loc = "tests/bruno/annotated_video.mp4"
+df_loc = "tests/bruno/df_new.hdf"
+mapping_folder = "data/distortion_maps/"
 
 
-# %% Setup
-df = pd.read_hdf(df_loc, key="df")
-# this is important; we expect a sorted daatframe
-df = df.sort_values(by=["frame", "ID"])
-
-mask = None
+data = parse_data(df_loc)
+initial_frame = data[0, 0, 0]
+# plus 1 for intiial frame since we plot (n-1, n)
 loader, image_size = setup_loader(
-    movie_loc, mapping_folder, initial_frame=(df.frame.min() + 1)
+    movie_loc, mapping_folder, initial_frame=(initial_frame + 1)
 )
 writer = setup_writer(output_loc, image_size, fps=30)
-
-n_minus_one_iterator = df.groupby("frame")  # gives data of frame n-1
-n_iterator = df.query(f"frame > {df.frame.min()}").groupby(
-    "frame"
-)  # gives data of frame n
-
-# %% Running
+mask = np.zeros((*image_size[::-1], 3), dtype=np.uint8)  # TODO: Check different shapes
 
 
-max_frames = 200
-for (idx, df_n_minus_one), (_, df_n) in zip(n_minus_one_iterator, n_iterator):
+max_frames = 1000
+for idx, (frame_info_i, frame_info_j) in enumerate(zip(data, data[1:])):
     image = loader()
-    if image is None:
+    if (image is None) or (idx == max_frames):
         break  # we're finished
 
-    if mask is None:
-        mask = np.zeros_like(image)
+    image = add_frame_info(image, f"frame: {frame_info_j[0, 0]}")
+    image = write_ID(image, frame_info_j)
 
-    image = add_frame_info(image, f"frame: {df_n.frame.iloc[0]}")
-    image = write_ID(image, df_n)
+    mask = update_mask(mask, frame_info_i, frame_info_j)
+    image = cv2.addWeighted(
+        image, 1.0, mask, 1.0, gamma=0
+    )  # image * (np.sum(mask, axis=-1) == 0)[:, :, None] + mask
+    # mask = cv2.addWeighted(
+    #    mask, 0.99, image * (np.sum(mask, axis=-1) != 0)[:, :, None], 0.01, -5
+    # )
 
-    mask = update_mask(mask, df_n_minus_one, df_n)
-    new_image = image * (np.sum(mask, axis=-1) == 0)[:, :, None] + mask
-    mask = cv2.addWeighted(
-        mask, 0.99, image * (np.sum(mask, axis=-1) != 0)[:, :, None], 0.01, -5
-    )
-
-    writer.write(new_image)
-
-    if idx == max_frames:
-        break
+    writer.write(image)
 writer.release()
 
-# pr.disable()
-
-# sortby = SortKey.CUMULATIVE
-# ps = pstats.Stats(pr).sort_stats(sortby)
-# ps.print_stats(20)
-
-# %%
-
-# %%
+pr.disable()
+sortby = pstats.SortKey.CUMULATIVE
+ps = pstats.Stats(pr).sort_stats(sortby)
+ps.print_stats(20)
