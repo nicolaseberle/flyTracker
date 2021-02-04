@@ -7,7 +7,7 @@ import pandas as pd
 
 # %% Settings
 movie_loc = "/home/gert-jan/Documents/flyTracker/data/testing_data/4arenas/seq_1.mp4"
-output_loc = "/home/gert-jan/Documents/flyTracker/tests/4arenas/annotated_video.avi"
+output_loc = "/home/gert-jan/Documents/flyTracker/tests/4arenas/annotated_video.mp4"
 df_loc = "/home/gert-jan/Documents/flyTracker/tests/4arenas/df_batch_0.hdf"
 mapping_folder = "/home/gert-jan/Documents/flyTracker/data/distortion_maps/"
 
