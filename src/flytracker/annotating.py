@@ -34,7 +34,13 @@ def parse_data(df_location):
         ]
     )
 
-    df["arena"] = np.repeat(new_arenas, int(df.shape[0] / arena_means.shape[0]))
+    df["arena"] = np.concatenate(
+        [
+            new_arenas[idx] * np.ones((arena_df.shape[0]), dtype=int)
+            for idx, (_, arena_df) in enumerate(df.groupby("arena"))
+        ],
+        axis=0,
+    )  # we enumerate only cause the frame idx is not int
 
     # New ID's so flies [0, n_flies] are in arena 0
     # [n_flies, 2 x n_flies] in arena 1 etc.
