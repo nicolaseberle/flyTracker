@@ -50,6 +50,10 @@ def localize_kmeans(
 
 def hungarian(locs_new: np.ndarray, locs_prev: np.ndarray) -> np.ndarray:
     """Returns ordered fly location (i.e. tracks)"""
-    new_ordering = linear_sum_assignment(distance_matrix(locs_new, locs_prev))[1]
+    new_ordering = linear_sum_assignment(
+        distance_matrix(locs_new[:, :2], locs_prev[:, :2])
+    )[
+        1
+    ]  # Distance matrix only over position
     return locs_new[new_ordering]
 
