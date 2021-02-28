@@ -28,7 +28,7 @@ mask[:, -260:] = 0
 # plt.imshow(image(mask), cmap="gray")
 
 # %% Running
-df = run(movie_path, mask, n_arenas=4, n_frames=1000)
+df = run(movie_path, mask, n_arenas=4, n_frames=0000)
 
 df.to_hdf(
     "/home/gert-jan/Documents/flyTracker/tests/codetesting/df.hdf",

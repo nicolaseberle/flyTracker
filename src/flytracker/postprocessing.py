@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 from sklearn.cluster import k_means
 import torch
+from itertools import accumulate
+from flytracker.tracking import hungarian
 
 
 def post_process(locations, initial_frame, n_arenas):
@@ -19,8 +21,10 @@ def post_process(locations, initial_frame, n_arenas):
     df = pd.DataFrame(
         np.concatenate([frames, identities], axis=1), columns=["frame", "ID"]
     )
-
-    df[["x", "y"]] = torch.cat(locations, dim=0).cpu().numpy()
+    # Actually performing the tracking
+    locs = torch.stack(locations, axis=0).cpu().numpy()
+    ordered_locs = list(accumulate(locs, func=lambda x, y: hungarian(y, x)))
+    df[["x", "y"]] = np.concatenate(ordered_locs, axis=0)
 
     # Adding arenas and reordering flies
     df = find_arena(df, n_arenas)
