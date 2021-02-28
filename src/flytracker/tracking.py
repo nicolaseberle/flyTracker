@@ -62,12 +62,14 @@ def localize_kmeans_torch(
     image: np.ndarray, init: np.ndarray, threshold: int = 120
 ) -> np.ndarray:
     """Find flies using kmeans."""
-    fly_pixels = cv.findNonZero((image < threshold).astype("uint8")).squeeze()
+
+    # we need to change order of axes
+    fly_pixels = torch.nonzero(torch.tensor(image) < threshold)[:, [1, 0]]
     locations = kmeans_torch(
-        torch.tensor(fly_pixels, dtype=torch.float32),
-        torch.tensor(init, dtype=torch.float32),
-    )[0]
-    return locations
+        fly_pixels.type(torch.float32), torch.tensor(init, dtype=torch.float32),
+    )
+
+    return locations.numpy()
 
 
 def hungarian(locs_new: np.ndarray, locs_prev: np.ndarray) -> np.ndarray:

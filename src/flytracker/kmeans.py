@@ -57,5 +57,5 @@ def kmeans_torch(X, init, tol=1e-4):
 
     new_centers, old_centers = step(X, init)[0], init
     while torch.linalg.norm(new_centers - old_centers) > tol:
-        (new_centers, labels), old_centers = step(X, new_centers), new_centers
-    return new_centers, labels
+        new_centers, old_centers = step(X, new_centers)[0], new_centers
+    return new_centers
