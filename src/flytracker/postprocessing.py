@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from sklearn.cluster import k_means
+import torch
 
 
 def post_process(locations, initial_frame, n_arenas):
@@ -18,7 +19,8 @@ def post_process(locations, initial_frame, n_arenas):
     df = pd.DataFrame(
         np.concatenate([frames, identities], axis=1), columns=["frame", "ID"]
     )
-    df[["x", "y"]] = np.concatenate(locations, axis=0)
+
+    df[["x", "y"]] = torch.cat(locations, dim=0).cpu().numpy()
 
     # Adding arenas and reordering flies
     df = find_arena(df, n_arenas)

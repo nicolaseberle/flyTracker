@@ -58,18 +58,18 @@ def localize_kmeans_jax(
     return locations
 
 
-def localize_kmeans_torch(
-    image: np.ndarray, init: np.ndarray, threshold: int = 120
-) -> np.ndarray:
-    """Find flies using kmeans."""
+def localize_kmeans_torch(loader, init, n_frames=900, threshold=120):
+    """Find flies using blob detector and
+    calulate number of flies."""
+    data = [init]
+    for frame_idx, frame in enumerate(loader):
+        frame = frame.cuda(non_blocking=True)
+        fly_pixels = torch.nonzero(frame.squeeze() < threshold).type(torch.float32)
+        data.append(kmeans_torch(fly_pixels, data[-1]))
 
-    # we need to change order of axes
-    fly_pixels = torch.nonzero(torch.tensor(image) < threshold)[:, [1, 0]]
-    locations = kmeans_torch(
-        fly_pixels.type(torch.float32), torch.tensor(init, dtype=torch.float32),
-    )
-
-    return locations.numpy()
+        if frame_idx == n_frames:
+            break
+    return data
 
 
 def hungarian(locs_new: np.ndarray, locs_prev: np.ndarray) -> np.ndarray:
@@ -81,3 +81,19 @@ def hungarian(locs_new: np.ndarray, locs_prev: np.ndarray) -> np.ndarray:
     ]  # Distance matrix only over position
     return locs_new[new_ordering]
 
+
+def initialize(loader, n_frames=100):
+    """Find flies using blob detector and
+    calulate number of flies."""
+    n_blobs = []
+
+    for frame_idx, frame in enumerate(loader):
+        locations = blob_detector_localization(frame.numpy().squeeze())
+        n_blobs.append(locations.shape[0])
+        if len(n_blobs) >= n_frames:
+            n_flies = int(np.median(n_blobs))
+            if n_blobs[-1] == n_flies:
+                break
+    # pluse on cause the next one is the first
+    initial_frame = frame_idx + 1
+    return n_flies, locations, initial_frame
