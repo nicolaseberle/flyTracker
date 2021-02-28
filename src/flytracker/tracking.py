@@ -3,8 +3,8 @@ import cv2 as cv
 from sklearn.cluster import KMeans
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial import distance_matrix
-from .kmeans import kmeans
-
+from .kmeans import kmeans_jax, kmeans_torch
+import torch
 
 # Blob detector
 def default_blob_detector_params() -> object:
@@ -53,9 +53,20 @@ def localize_kmeans_jax(
     image: np.ndarray, init: np.ndarray, threshold: int = 120
 ) -> np.ndarray:
     """Find flies using kmeans."""
-    n_flies = init.shape[0]
     fly_pixels = cv.findNonZero((image < threshold).astype("uint8")).squeeze()
-    locations = kmeans(fly_pixels, init)[0]
+    locations = kmeans_jax(fly_pixels, init)[0]
+    return locations
+
+
+def localize_kmeans_torch(
+    image: np.ndarray, init: np.ndarray, threshold: int = 120
+) -> np.ndarray:
+    """Find flies using kmeans."""
+    fly_pixels = cv.findNonZero((image < threshold).astype("uint8")).squeeze()
+    locations = kmeans_torch(
+        torch.tensor(fly_pixels, dtype=torch.float32),
+        torch.tensor(init, dtype=torch.float32),
+    )[0]
     return locations
 
 

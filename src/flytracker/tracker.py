@@ -10,6 +10,7 @@ from .tracking import (
     blob_detector_localization,
     localize_kmeans,
     localize_kmeans_jax,
+    localize_kmeans_torch,
     hungarian,
 )
 
@@ -38,6 +39,8 @@ def run(
         localization_fn = localize_kmeans
     elif method == "kmeans_jax":
         localization_fn = localize_kmeans_jax
+    elif method == "kmeans_pytorch":
+        localization_fn = localize_kmeans_torch
     elif method == "GMM":
         raise NotImplementedError
     else:

@@ -1,10 +1,7 @@
-import os
-
-os.environ["JAX_PLATFORM_NAME"] = "cpu"  # %% Imports
+import numpy as np
 import cv2 as cv
 from flytracker.preprocessing import construct_undistort_map, preprocessing
 from flytracker.tracker import run
-import numpy as np
 import matplotlib.pyplot as plt
 
 # %% Mask
@@ -37,7 +34,7 @@ df = run(
     n_arenas=4,
     mapping_folder=mapping_folder,
     n_frames=1000,
-    method="kmeans",
+    method="kmeans_pytorch",
 )
 df.to_hdf(
     "/home/gert-jan/Documents/flyTracker/tests/codetesting/df.hdf",
