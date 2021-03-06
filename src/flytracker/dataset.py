@@ -1,10 +1,9 @@
 import torch
 import numpy as np
-import cv2 as cv
-from flytracker.preprocessing import preprocessing
+import cv2
 from flytracker.videoreader import VideoReader
 from torchvision import io
-from torchvision.transforms.functional import rgb_to_grayscale
+from torchvision.transforms.functional import rgb_to_grayscale, to_pil_image, to_tensor
 
 
 class VideoDataset(torch.utils.data.IterableDataset):
@@ -13,7 +12,8 @@ class VideoDataset(torch.utils.data.IterableDataset):
         if parallel:
             self.reader = VideoReader(path, *parallel_kwargs)
         else:
-            self.reader = cv.VideoCapture(path)
+            self.reader = cv2.VideoCapture(path)
+
         self.mask = torch.tensor(mask, dtype=torch.bool)
 
     def __iter__(self):
@@ -23,14 +23,10 @@ class VideoDataset(torch.utils.data.IterableDataset):
         succes, image = self.reader.read()
         if succes is False:
             raise StopIteration
-        # because we use opencv
-        image = np.moveaxis(image, -1, 0)
         image = torch.tensor(image)
-        image = rgb_to_grayscale(image)
-        processed_image = torch.where(
-            self.mask, image.squeeze(), torch.tensor(255, dtype=torch.uint8)
-        )
-        return processed_image
+        image = rgb_to_grayscale(image.permute(2, 0, 1))
+        image = torch.where(self.mask, image, torch.tensor(255, dtype=torch.uint8))
+        return image.squeeze()
 
 
 class TorchVideoDataset(torch.utils.data.IterableDataset):
