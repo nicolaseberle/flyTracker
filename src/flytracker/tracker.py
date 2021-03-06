@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from flytracker.dataset import VideoDataset, ParallelVideoDataset, TorchVideoDataset
+from flytracker.dataset import VideoDataset, TorchVideoDataset
 from torch.utils.data import DataLoader
 from .postprocessing import post_process
 from .tracking import (
