@@ -69,6 +69,8 @@ def localize_kmeans_torch(loader, init, n_frames=900, threshold=120):
 
         if frame_idx == n_frames:
             break
+        if frame_idx % 100 == 0:
+            print(f"Done with {frame_idx}")
     return data
 
 

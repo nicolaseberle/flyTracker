@@ -103,7 +103,8 @@ def setup_loader(movie_loc, mapping_folder, initial_frame=0):
         ret, image = capture.read()
         # image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # cause our video uses bgr
         if ret is not False:
-            image = cv2.remap(image, *mapping, cv2.INTER_LINEAR)
+            # image = cv2.remap(image, *mapping, cv2.INTER_LINEAR)
+            pass
         else:
             image = None
             capture.release()

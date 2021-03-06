@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from flytracker.dataset import VideoDataset
+from flytracker.dataset import VideoDataset, ParallelVideoDataset, TorchVideoDataset
 from torch.utils.data import DataLoader
 from .postprocessing import post_process
 from .tracking import (
@@ -30,6 +30,7 @@ def run(
     # Actual logic
     n_flies, initial_locations, initial_frame = initialize(loader, n_ini)
     locs = localize_kmeans_torch(loader, initial_locations, n_frames=n_frames)
+    # loader.dataset.reader.stop()
     df = post_process(locs, initial_frame, n_arenas=n_arenas)
     return df
 

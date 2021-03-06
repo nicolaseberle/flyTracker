@@ -3,9 +3,10 @@ import cv2 as cv
 from flytracker.preprocessing import construct_undistort_map, preprocessing
 from flytracker.tracker import run
 import matplotlib.pyplot as plt
+from flytracker.annotating import annotate
 
 # %% Mask
-movie_path = "/home/gert-jan/Documents/flyTracker/data/testing_data/4arenas/seq_1.mp4"
+movie_path = "/home/gert-jan/Documents/flyTracker/data/testing_data/4arenas/seq_1.h264"
 mapping_folder = "/home/gert-jan/Documents/flyTracker/data/distortion_maps/"
 
 # capture = cv.VideoCapture(movie_path)
@@ -28,7 +29,7 @@ mask[:, -260:] = 0
 # plt.imshow(image(mask), cmap="gray")
 
 # %% Running
-df = run(movie_path, mask, n_arenas=4, n_frames=0000)
+df = run(movie_path, mask, n_arenas=4, n_frames=1000)
 
 df.to_hdf(
     "/home/gert-jan/Documents/flyTracker/tests/codetesting/df.hdf",
