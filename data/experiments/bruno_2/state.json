@@ -1,0 +1,11 @@
+{
+	"name": "bruno_2",
+	"validated_kmeans": {
+		"sk-learn": true,
+		"pytorch": false},
+	"validated_gmm":{
+		"sk-learn": false,
+		"pytorch": false}
+}
+
+
