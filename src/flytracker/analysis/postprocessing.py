@@ -21,12 +21,11 @@ def post_process(locations, initial_frame, n_arenas):
     df = pd.DataFrame(
         np.concatenate([frames, identities], axis=1), columns=["frame", "ID"]
     )
-    # Actually performing the tracking
-    locs = torch.stack(locations, axis=0).cpu().numpy()
-    ordered_locs = list(accumulate(locs, func=lambda x, y: hungarian(y, x)))
-    df[["x", "y"]] = np.concatenate(ordered_locs, axis=0)
+
+    #
 
     # Adding arenas and reordering flies
+    df[["x", "y"]] = np.concatenate(locations, axis=0)
     df = find_arena(df, n_arenas)
     df = order_flies(df)
 
