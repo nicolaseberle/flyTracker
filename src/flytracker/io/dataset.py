@@ -2,14 +2,13 @@ import torch
 import cv2
 from torchvision import io
 from torchvision.transforms.functional import rgb_to_grayscale
-from ..preprocessing.preprocessing import preprocessing
 
 
 class VideoDataset(torch.utils.data.IterableDataset):
-    def __init__(self, movie_path, mapping_folder, mask):
+    def __init__(self, movie_path, preprocessing_fn, *preprocessing_args):
         super().__init__()
         self.reader = cv2.VideoCapture(movie_path)
-        self.preprocessor = preprocessing(mask, mapping_folder)
+        self.preprocessor = preprocessing_fn(*preprocessing_args)
 
     def __iter__(self):
         return self

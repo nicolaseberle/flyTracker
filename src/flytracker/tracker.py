@@ -7,6 +7,7 @@ from .localization.kmeans.kmeans import localize_kmeans
 from .analysis.postprocessing import post_process
 from .tracking.tracking import tracking
 from torch.utils.data import DataLoader
+from .preprocessing.preprocessing import preprocessing
 
 
 def run(
@@ -19,7 +20,7 @@ def run(
 ) -> pd.DataFrame:
     """User facing run function with sensible standard settings."""
 
-    dataset = VideoDataset(movie_path, mapping_folder, mask)
+    dataset = VideoDataset(movie_path, preprocessing, mask, mapping_folder)
     loader = DataLoader(dataset, batch_size=1, pin_memory=True)
     return _run(
         loader,
