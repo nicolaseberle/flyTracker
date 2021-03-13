@@ -1,8 +1,6 @@
 import jax
 from jax import jit, lax, numpy as jnp
 from functools import partial
-import torch
-from torch.nn.functional import normalize
 
 
 @jit
@@ -39,25 +37,3 @@ def kmeans_jax(X, init):
     mu, _ = lax.while_loop(cond_fun, body_fun, init_carry)
     _, labels = step(mu)
     return mu, labels
-
-
-def kmeans_torch(X, init, tol=1e-4):
-    def step(X, mu):
-        # E step
-        dist_matrix = torch.cdist(X, mu)
-        labels = torch.argmin(dist_matrix, axis=1)
-
-        # M step
-        M.zero_()  # resetting
-        M[labels, torch.arange(n_samples)] = 1.0  #  updating in place
-        mu = torch.matmul(normalize(M, p=1, dim=1), X)
-        return mu, labels
-
-    n_samples, n_clusters = X.shape[0], init.shape[0]
-    M = torch.zeros((n_clusters, n_samples)).cuda()
-
-    new_centers, old_centers = step(X, init)[0], init
-    while torch.linalg.norm(new_centers - old_centers) > tol:
-        new_centers, old_centers = step(X, new_centers)[0], new_centers
-    return new_centers
-

@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 import cv2
-from flytracker.videoreader import VideoReader
+from .videoreader import VideoReader
 from torchvision import io
 from torchvision.transforms.functional import rgb_to_grayscale, to_pil_image, to_tensor
 

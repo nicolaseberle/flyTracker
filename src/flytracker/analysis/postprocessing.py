@@ -3,7 +3,7 @@ import pandas as pd
 from sklearn.cluster import k_means
 import torch
 from itertools import accumulate
-from flytracker.tracking import hungarian
+from ..tracking.hungarian import hungarian
 
 
 def post_process(locations, initial_frame, n_arenas):
