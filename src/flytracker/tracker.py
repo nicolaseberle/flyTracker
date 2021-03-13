@@ -1,12 +1,12 @@
 import numpy as np
 import pandas as pd
-from typing import Callable, Tuple
-from itertools import count
-from .io.loader import opencv_loader
+from typing import Callable, Iterable, Tuple
+from .io.dataset import VideoDataset
 from .localization.blob.blob import blob_detector_localization
 from .localization.kmeans.kmeans import localize_kmeans
 from .analysis.postprocessing import post_process
 from .tracking.tracking import tracking
+from torch.utils.data import DataLoader
 
 
 def run(
@@ -19,7 +19,8 @@ def run(
 ) -> pd.DataFrame:
     """User facing run function with sensible standard settings."""
 
-    loader = opencv_loader(movie_path, mapping_folder, mask)
+    dataset = VideoDataset(movie_path, mapping_folder, mask)
+    loader = DataLoader(dataset, batch_size=1, pin_memory=True)
     return _run(
         loader,
         blob_detector_localization,
@@ -33,7 +34,7 @@ def run(
 
 
 def _run(
-    loader: Callable,
+    loader: Iterable,
     initial_localizer: Callable,
     main_localizer: Callable,
     tracker: Callable,
@@ -50,14 +51,14 @@ def _run(
 
 
 def _initialize(
-    loader: Callable, localizer: Callable, n_frames: int
+    loader: Iterable, localizer: Callable, n_frames: int
 ) -> Tuple[np.ndarray, int]:
     n_blobs = []
-    for frame_idx in count():
-        locations = localizer(loader())
+    for frame_idx, image in enumerate(loader):
+        locations = localizer(image.squeeze())
         n_blobs.append(locations.shape[0])
 
-        if len(n_blobs) >= n_frames:
+        if frame_idx >= n_frames:
             n_flies = int(np.median(n_blobs))
             if n_blobs[-1] == n_flies:
                 break
@@ -66,22 +67,18 @@ def _initialize(
 
 
 def _localize(
-    loader: Callable,
+    loader: Iterable,
     localizer: Callable,
     initial_position: np.ndarray,
     n_frames: int = None,
 ) -> np.ndarray:
 
     locations = [initial_position]
-    for idx in count():
-        image = loader()
-        if image is None:
-            break
+    for frame_idx, image in enumerate(loader):
+        locations.append(localizer(image.squeeze(), locations[-1]))
 
-        locations.append(localizer(image, locations[-1]))
-
-        if idx % 1000 == 0:
-            print(f"Done with frame {idx}")
-        if idx + 1 == n_frames:
+        if frame_idx % 1000 == 0:
+            print(f"Done with frame {frame_idx}")
+        if frame_idx + 1 == n_frames:
             break  # max number of frames
     return locations
