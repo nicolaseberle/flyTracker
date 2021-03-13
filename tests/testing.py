@@ -16,5 +16,5 @@ mask[:230, -300:] = 0
 mask[-250:, :370] = 0
 mask[830:, 970:] = 0
 
-df = run(movie_path, mask, n_arenas=4, mapping_folder=mapping_folder, n_frames=1000)
+df = run(movie_path, mask, n_arenas=4, mapping_folder=mapping_folder, n_frames=10000)
 df.to_hdf("tests/df.hdf", key="df", complevel=9, complib="blosc")

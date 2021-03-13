@@ -55,7 +55,7 @@ def _initialize(
 ) -> Tuple[np.ndarray, int]:
     n_blobs = []
     for frame_idx, image in enumerate(loader):
-        locations = localizer(image.squeeze().numpy())
+        locations = localizer(image)
         n_blobs.append(locations.shape[0])
 
         if frame_idx >= n_frames:
@@ -75,7 +75,7 @@ def _localize(
 
     locations = [initial_position]
     for frame_idx, image in enumerate(loader):
-        locations.append(localizer(image.squeeze(), locations[-1]))
+        locations.append(localizer(image, locations[-1]))
 
         if frame_idx % 1000 == 0:
             print(f"Done with frame {frame_idx}")

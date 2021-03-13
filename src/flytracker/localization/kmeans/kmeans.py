@@ -12,7 +12,9 @@ def localize_kmeans(
 ) -> np.ndarray:
     """Find flies using kmeans."""
     n_flies = init.shape[0]
-    fly_pixels = cv.findNonZero((image < threshold).astype("uint8")).squeeze()
+    fly_pixels = cv.findNonZero(
+        (image.numpy().squeeze() < threshold).astype("uint8")
+    ).squeeze()
     locations = (
         KMeans(n_clusters=n_flies, n_init=1, init=init).fit(fly_pixels).cluster_centers_
     )
