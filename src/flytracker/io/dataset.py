@@ -14,7 +14,7 @@ class VideoDataset(torch.utils.data.IterableDataset):
     def __iter__(self):
         return self
 
-    def __next__(self) -> torch.Tensor:
+    def __next__(self):
         succes, image = self.reader.read()
         if succes is False:
             raise StopIteration
