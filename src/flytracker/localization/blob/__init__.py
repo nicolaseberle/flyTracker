@@ -1,1 +1,1 @@
-from .blob import blob_detector_localization
+from .blob import localize_blob

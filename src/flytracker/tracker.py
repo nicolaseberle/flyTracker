@@ -2,15 +2,14 @@ import numpy as np
 import pandas as pd
 from torch.utils.data import DataLoader
 from itertools import takewhile
-
-
 from typing import Callable, Iterable, Tuple
+
 from .io import VideoDataset
-from .localization.blob import blob_detector_localization
-from .localization.kmeans import localize_kmeans
-from .analysis import post_process
-from .tracking import tracking
 from .preprocessing import preprocessing
+from .localization.blob import localize_blob
+from .localization.kmeans import localize_kmeans
+from .tracking import tracking
+from .analysis import post_process
 
 
 def run(
@@ -27,7 +26,7 @@ def run(
     loader = DataLoader(dataset, batch_size=1, pin_memory=True)
     return _run(
         loader,
-        blob_detector_localization,
+        localize_blob,
         localize_kmeans,
         tracking,
         post_process,
