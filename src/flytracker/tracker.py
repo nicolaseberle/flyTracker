@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import torch
+from torch._C import device
 from torch.utils.data import DataLoader
 from itertools import takewhile
 from typing import Callable, Iterable, Tuple
@@ -28,8 +29,10 @@ def run(
     loader = DataLoader(dataset, batch_size=1, pin_memory=True)
     if gpu:
         main_localizer = localize_kmeans_torch
+        tensor, device = True, "cuda"
     else:
         main_localizer = localize_kmeans
+        tensor, device = False, "cpu"
 
     return _run(
         loader,
@@ -40,7 +43,8 @@ def run(
         n_arenas,
         n_frames,
         n_ini,
-        gpu,
+        tensor,
+        device,
     )
 
 
@@ -53,10 +57,13 @@ def _run(
     n_arenas: int,
     n_frames=np.inf,
     n_ini=100,
-    gpu=False,
+    tensor=True,
+    device="cuda",
 ):
     initial_position, initial_frame = _initialize(loader, initial_localizer, n_ini)
-    locations = _localize(loader, main_localizer, initial_position, n_frames, gpu)
+    locations = _localize(
+        loader, main_localizer, initial_position, n_frames, tensor, device
+    )
     ordered_locations = tracker(locations)
     df = post_process(ordered_locations, initial_frame, n_arenas)
     return df
@@ -83,18 +90,20 @@ def _localize(
     localizer: Callable,
     initial_position: np.ndarray,
     n_frames: int,
-    gpu: bool,
+    tensor: bool,
+    device: str,
 ) -> np.ndarray:
 
     locations = [
-        torch.tensor(initial_position[:, ::-1].copy(), dtype=torch.float32).cuda()
-        if gpu
+        torch.tensor(initial_position[:, ::-1].copy(), dtype=torch.float32).to(device)
+        if tensor
         else initial_position
     ]
+
     for frame_idx, image in takewhile(lambda x: x[0] <= n_frames, enumerate(loader)):
         locations.append(localizer(image, locations[-1]))
         if frame_idx % 1000 == 0:
             print(f"Done with frame {frame_idx}")
-    if gpu:
+    if tensor:
         locations = list(torch.stack(locations, dim=0).cpu().numpy())
     return locations

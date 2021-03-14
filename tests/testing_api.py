@@ -24,7 +24,7 @@ df = run(
     n_arenas=4,
     mapping_folder=mapping_folder,
     n_frames=1000,
-    gpu=True,
+    gpu=False,
 )
 df.to_hdf("tests/df.hdf", key="df", complevel=9, complib="blosc")
 

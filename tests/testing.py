@@ -6,7 +6,7 @@ from flytracker.analysis import annotate
 from flytracker.io import VideoDataset
 from flytracker.preprocessing import preprocessing
 from flytracker.localization.blob import localize_blob
-from flytracker.localization.kmeans import localize_kmeans_torch
+from flytracker.localization.kmeans import localize_kmeans_torch, localize_kmeans
 from flytracker.tracking import tracking
 from flytracker.analysis import post_process
 
@@ -33,13 +33,14 @@ loader = DataLoader(dataset, batch_size=1, pin_memory=True)
 df = _run(
     loader,
     localize_blob,
-    localize_kmeans_torch,
+    localize_kmeans,
     tracking,
     post_process,
     n_arenas=4,
-    n_frames=10000,
+    n_frames=1000,
     n_ini=100,
-    gpu=True,
+    tensor=False,
+    device="cuda",
 )
 
 df.to_hdf("tests/df.hdf", key="df", complevel=9, complib="blosc")

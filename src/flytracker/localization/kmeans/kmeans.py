@@ -20,9 +20,9 @@ def localize_kmeans(
     return locations
 
 
-def localize_kmeans_torch(image, init, threshold=120):
-    image = image.cuda(non_blocking=True)
+def localize_kmeans_torch(image, init, threshold=120, device="cuda"):
+    image = image.to(device, non_blocking=True)
     fly_pixels = torch.nonzero(image.squeeze() < threshold).type(torch.float32)
-    locations = kmeans_torch(fly_pixels, init)
+    locations = kmeans_torch(fly_pixels, init, device=device)
 
     return locations
