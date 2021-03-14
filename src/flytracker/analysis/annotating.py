@@ -22,7 +22,6 @@ def annotate(
     data, n_flies_per_arena = parse_data(df)
 
     initial_frame = data[0, 0, 0]
-    print(data.shape)
     # plus 1 for intiial frame since we plot (n-1, n)
     loader, image_size = setup_loader(
         movie_loc, mapping_folder, initial_frame=(initial_frame + 1)
@@ -174,5 +173,3 @@ def color_picker(ID, n_flies_per_arena, palette=color_palette("Paired")):
     color = tuple(color * 255 for color in palette[ID % n_flies_per_arena])
     return color
 
-
-# %%
