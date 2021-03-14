@@ -18,22 +18,29 @@ def run(
     mask: np.ndarray,
     n_arenas: int,
     mapping_folder: str,
-    n_frames: int = None,
+    n_frames: int = np.inf,
     n_ini: int = 100,
+    gpu: bool = True,
 ) -> pd.DataFrame:
     """User facing run function with sensible standard settings."""
 
     dataset = VideoDataset(movie_path, preprocessing, mask, mapping_folder)
     loader = DataLoader(dataset, batch_size=1, pin_memory=True)
+    if gpu:
+        main_localizer = localize_kmeans_torch
+    else:
+        main_localizer = localize_kmeans
+
     return _run(
         loader,
         localize_blob,
-        localize_kmeans,
+        main_localizer,
         tracking,
         post_process,
         n_arenas,
         n_frames,
         n_ini,
+        gpu,
     )
 
 
