@@ -8,6 +8,7 @@ from .analysis.postprocessing import post_process
 from .tracking.tracking import tracking
 from torch.utils.data import DataLoader
 from .preprocessing.preprocessing import preprocessing
+from itertools import takewhile
 
 
 def run(
@@ -41,7 +42,7 @@ def _run(
     tracker: Callable,
     post_process: Callable,
     n_arenas: int,
-    n_frames=None,
+    n_frames=np.inf,
     n_ini=100,
 ):
     initial_position, initial_frame = _initialize(loader, initial_localizer, n_ini)
@@ -71,15 +72,12 @@ def _localize(
     loader: Iterable,
     localizer: Callable,
     initial_position: np.ndarray,
-    n_frames: int = None,
+    n_frames: int = np.inf,
 ) -> np.ndarray:
 
     locations = [initial_position]
-    for frame_idx, image in enumerate(loader):
+    for frame_idx, image in takewhile(lambda x: x[0] <= n_frames, enumerate(loader)):
         locations.append(localizer(image, locations[-1]))
-
         if frame_idx % 1000 == 0:
             print(f"Done with frame {frame_idx}")
-        if frame_idx + 1 == n_frames:
-            break  # max number of frames
     return locations
