@@ -1,6 +1,14 @@
 import numpy as np
-from flytracker import run
+from torch.utils.data import DataLoader
+
+from flytracker.tracker import _run
 from flytracker.analysis import annotate
+from flytracker.io import VideoDataset
+from flytracker.preprocessing import preprocessing
+from flytracker.localization.blob import localize_blob
+from flytracker.localization.kmeans import localize_kmeans_torch
+from flytracker.tracking import tracking
+from flytracker.analysis import post_process
 
 movie_path = "data/experiments/bruno/videos/seq_1.mp4"
 mapping_folder = "data/distortion_maps/"
@@ -18,16 +26,32 @@ mask[-250:, :370] = 0
 mask[830:, 970:] = 0
 
 print("Running tracker.")
-df = run(movie_path, mask, n_arenas=4, mapping_folder=mapping_folder, n_frames=1000)
+
+
+dataset = VideoDataset(movie_path, preprocessing, mask, mapping_folder)
+loader = DataLoader(dataset, batch_size=1, pin_memory=True)
+df = _run(
+    loader,
+    localize_blob,
+    localize_kmeans_torch,
+    tracking,
+    post_process,
+    n_arenas=4,
+    n_frames=10000,
+    n_ini=100,
+    gpu=True,
+)
+
 df.to_hdf("tests/df.hdf", key="df", complevel=9, complib="blosc")
 
-print("Starting annotating.")
-annotate(
-    df,
-    movie_path,
-    mapping_folder,
-    "tests/annotated_video.mp4",
-    max_frames=1000,
-    track_length=30,
-    touching_distance=10,
-)
+
+# print("Starting annotating.")
+# annotate(
+#    df,
+#    movie_path,
+#    mapping_folder,
+#    "tests/annotated_video.mp4",
+#    max_frames=1000,
+#    track_length=30,
+#    touching_distance=10,
+# )

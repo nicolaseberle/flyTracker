@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import torch
 from torch.utils.data import DataLoader
 from itertools import takewhile
 from typing import Callable, Iterable, Tuple
@@ -7,7 +8,7 @@ from typing import Callable, Iterable, Tuple
 from .io import VideoDataset
 from .preprocessing import preprocessing
 from .localization.blob import localize_blob
-from .localization.kmeans import localize_kmeans
+from .localization.kmeans import localize_kmeans, localize_kmeans_torch
 from .tracking import tracking
 from .analysis import post_process
 
@@ -45,9 +46,10 @@ def _run(
     n_arenas: int,
     n_frames=np.inf,
     n_ini=100,
+    gpu=False,
 ):
     initial_position, initial_frame = _initialize(loader, initial_localizer, n_ini)
-    locations = _localize(loader, main_localizer, initial_position, n_frames)
+    locations = _localize(loader, main_localizer, initial_position, n_frames, gpu)
     ordered_locations = tracker(locations)
     df = post_process(ordered_locations, initial_frame, n_arenas)
     return df
@@ -73,12 +75,19 @@ def _localize(
     loader: Iterable,
     localizer: Callable,
     initial_position: np.ndarray,
-    n_frames: int = np.inf,
+    n_frames: int,
+    gpu: bool,
 ) -> np.ndarray:
 
-    locations = [initial_position]
+    locations = [
+        torch.tensor(initial_position[:, ::-1].copy(), dtype=torch.float32).cuda()
+        if gpu
+        else initial_position
+    ]
     for frame_idx, image in takewhile(lambda x: x[0] <= n_frames, enumerate(loader)):
         locations.append(localizer(image, locations[-1]))
         if frame_idx % 1000 == 0:
             print(f"Done with frame {frame_idx}")
+    if gpu:
+        locations = list(torch.stack(locations, dim=0).cpu().numpy())
     return locations
