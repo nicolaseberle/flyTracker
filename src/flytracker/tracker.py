@@ -95,7 +95,7 @@ def _localize(
 ) -> np.ndarray:
 
     locations = [
-        torch.tensor(initial_position[:, ::-1].copy(), dtype=torch.float32).to(device)
+        torch.tensor(initial_position, dtype=torch.float32).to(device)
         if tensor
         else initial_position
     ]

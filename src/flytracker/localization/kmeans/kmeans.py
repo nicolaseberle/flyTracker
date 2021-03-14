@@ -22,7 +22,9 @@ def localize_kmeans(
 
 def localize_kmeans_torch(image, init, threshold=120, device="cuda"):
     image = image.to(device, non_blocking=True)
-    fly_pixels = torch.nonzero(image.squeeze() < threshold).type(torch.float32)
-    locations = kmeans_torch(fly_pixels, init, device=device)
+    fly_pixels = torch.fliplr(
+        torch.nonzero(image.squeeze() < threshold).type(torch.float32)
+    )  # flip to be inline with opencv
+    locations = kmeans_torch(fly_pixels, init)
 
     return locations
