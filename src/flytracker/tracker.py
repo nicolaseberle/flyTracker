@@ -1,14 +1,16 @@
 import numpy as np
 import pandas as pd
-from typing import Callable, Iterable, Tuple
-from .io.dataset import VideoDataset
-from .localization.blob.blob import blob_detector_localization
-from .localization.kmeans.kmeans import localize_kmeans
-from .analysis.postprocessing import post_process
-from .tracking.tracking import tracking
 from torch.utils.data import DataLoader
-from .preprocessing.preprocessing import preprocessing
 from itertools import takewhile
+
+
+from typing import Callable, Iterable, Tuple
+from .io import VideoDataset
+from .localization.blob import blob_detector_localization
+from .localization.kmeans import localize_kmeans
+from .analysis import post_process
+from .tracking import tracking
+from .preprocessing import preprocessing
 
 
 def run(

@@ -1,6 +1,6 @@
 import numpy as np
-from flytracker.tracker import run
-from flytracker.analysis.annotating import annotate
+from flytracker import run
+from flytracker.analysis import annotate
 
 movie_path = "data/experiments/bruno/videos/seq_1.mp4"
 mapping_folder = "data/distortion_maps/"
