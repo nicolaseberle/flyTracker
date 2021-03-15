@@ -6,17 +6,20 @@ import torch
 
 
 def localize_kmeans(
-    image: np.ndarray, init: np.ndarray, threshold: int = 120
+    image: np.ndarray, prev_locations: np.ndarray, threshold: int = 120, tol=1e-4
 ) -> np.ndarray:
     """Find flies using kmeans."""
+    init = prev_locations[-1]
     n_flies = init.shape[0]
     fly_pixels = cv.findNonZero(
         (image.numpy().squeeze() < threshold).astype("uint8")
     ).squeeze()
     locations = (
-        KMeans(n_clusters=n_flies, n_init=1, init=init).fit(fly_pixels).cluster_centers_
+        KMeans(n_clusters=n_flies, n_init=1, init=init, tol=tol)
+        .fit(fly_pixels)
+        .cluster_centers_
     )
-    return locations
+    return prev_locations + [locations]
 
 
 def localize_kmeans_torch(

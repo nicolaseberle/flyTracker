@@ -29,10 +29,10 @@ def run(
     loader = DataLoader(dataset, batch_size=1, pin_memory=True)
     if gpu:
         main_localizer = localize_kmeans_torch
-        localizer_args = (120, "cuda")
+        localizer_args = (120, "cuda", 1e-4)
     else:
         main_localizer = localize_kmeans
-        localizer_args = (120, "cpu")
+        localizer_args = (120, 1e-4)
 
     return _run(
         loader,
