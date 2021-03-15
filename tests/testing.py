@@ -34,6 +34,7 @@ df = _run(
     loader,
     localize_blob,
     localize_kmeans_torch,
+    (120, "cuda", 1e-4),
     tracking,
     post_process,
     n_arenas=4,

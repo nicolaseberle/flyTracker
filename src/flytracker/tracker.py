@@ -29,13 +29,16 @@ def run(
     loader = DataLoader(dataset, batch_size=1, pin_memory=True)
     if gpu:
         main_localizer = localize_kmeans_torch
+        localizer_args = (120, "cuda")
     else:
         main_localizer = localize_kmeans
+        localizer_args = (120, "cpu")
 
     return _run(
         loader,
         localize_blob,
         main_localizer,
+        localizer_args,
         tracking,
         post_process,
         n_arenas,
@@ -48,6 +51,7 @@ def _run(
     loader: Iterable,
     initial_localizer: Callable,
     main_localizer: Callable,
+    main_localizer_args: Tuple,
     tracker: Callable,
     post_process: Callable,
     n_arenas: int,
@@ -55,7 +59,9 @@ def _run(
     n_ini=100,
 ):
     initial_position, initial_frame = _initialize(loader, initial_localizer, n_ini)
-    locations = _localize(loader, main_localizer, initial_position, n_frames)
+    locations = _localize(
+        loader, main_localizer, main_localizer_args, initial_position, n_frames
+    )
     ordered_locations = tracker(locations)
     df = post_process(ordered_locations, initial_frame, n_arenas)
     return df
@@ -78,12 +84,17 @@ def _initialize(
 
 
 def _localize(
-    loader: Iterable, localizer: Callable, initial_position: np.ndarray, n_frames: int,
+    loader: Iterable,
+    localizer: Callable,
+    localizer_args: Tuple,
+    initial_position: np.ndarray,
+    n_frames: int,
 ) -> np.ndarray:
 
     locations = [initial_position]
+    localize = localizer(*localizer_args)
     for frame_idx, image in takewhile(lambda x: x[0] <= n_frames, enumerate(loader)):
-        locations = localizer(image, locations)
+        locations = localize(image, locations)
         if frame_idx % 1000 == 0:
             print(f"Done with frame {frame_idx}")
 
