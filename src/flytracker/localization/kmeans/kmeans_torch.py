@@ -2,7 +2,7 @@ import torch
 from torch.nn.functional import normalize
 
 
-def kmeans_torch(X, init, tol=1e-4):
+def kmeans_torch(X, init, tol=1e-4, device="cuda"):
     def step(X, mu):
         # E step
         dist_matrix = torch.cdist(X, mu)
@@ -15,7 +15,7 @@ def kmeans_torch(X, init, tol=1e-4):
         return mu, labels
 
     n_samples, n_clusters = X.shape[0], init.shape[0]
-    M = torch.zeros((n_clusters, n_samples)).cuda()
+    M = torch.zeros((n_clusters, n_samples)).to(device, non_blocking=True)
 
     new_centers, old_centers = step(X, init)[0], init
     while torch.linalg.norm(new_centers - old_centers) > tol:
