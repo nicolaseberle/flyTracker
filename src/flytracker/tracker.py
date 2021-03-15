@@ -92,12 +92,9 @@ def _localize(
 ) -> np.ndarray:
 
     locations = [initial_position]
-    localize = localizer(*localizer_args)
     for frame_idx, image in takewhile(lambda x: x[0] <= n_frames, enumerate(loader)):
-        locations = localize(image, locations)
+        locations = localizer(image, locations, *localizer_args)
         if frame_idx % 1000 == 0:
             print(f"Done with frame {frame_idx}")
 
-    if isinstance(locations[-1], torch.Tensor):
-        locations = list(torch.stack(locations, dim=0).cpu().numpy())
     return locations
