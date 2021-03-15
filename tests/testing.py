@@ -5,7 +5,7 @@ from flytracker.tracker import _run
 from flytracker.analysis import annotate
 from flytracker.io import VideoDataset
 from flytracker.preprocessing import preprocessing
-from flytracker.localization.blob import localize_blob
+from flytracker.localization.blob import localize_blob, default_blob_detector_params
 from flytracker.localization.kmeans import localize_kmeans_torch, localize_kmeans
 from flytracker.tracking import tracking
 from flytracker.analysis import post_process
@@ -33,6 +33,7 @@ loader = DataLoader(dataset, batch_size=1, pin_memory=True)
 df = _run(
     loader,
     localize_blob,
+    (default_blob_detector_params(),),
     localize_kmeans_torch,
     (120, "cuda", 1e-4),
     tracking,

@@ -1,14 +1,13 @@
 import numpy as np
 import pandas as pd
 import torch
-from torch._C import device
 from torch.utils.data import DataLoader
 from itertools import takewhile
 from typing import Callable, Iterable, Tuple
 
 from .io import VideoDataset
 from .preprocessing import preprocessing
-from .localization.blob import localize_blob
+from .localization.blob import localize_blob, default_blob_detector_params
 from .localization.kmeans import localize_kmeans, localize_kmeans_torch
 from .tracking import tracking
 from .analysis import post_process
@@ -33,10 +32,11 @@ def run(
     else:
         main_localizer = localize_kmeans
         localizer_args = (120, 1e-4)
-
+    blob_args = (default_blob_detector_params(),)
     return _run(
         loader,
         localize_blob,
+        blob_args,
         main_localizer,
         localizer_args,
         tracking,
@@ -50,6 +50,7 @@ def run(
 def _run(
     loader: Iterable,
     initial_localizer: Callable,
+    initial_localizer_args: Tuple,
     main_localizer: Callable,
     main_localizer_args: Tuple,
     tracker: Callable,
@@ -58,7 +59,9 @@ def _run(
     n_frames=np.inf,
     n_ini=100,
 ):
-    initial_position, initial_frame = _initialize(loader, initial_localizer, n_ini)
+    initial_position, initial_frame = _initialize(
+        loader, initial_localizer, initial_localizer_args, n_ini
+    )
     locations = _localize(
         loader, main_localizer, main_localizer_args, initial_position, n_frames
     )
@@ -68,11 +71,11 @@ def _run(
 
 
 def _initialize(
-    loader: Iterable, localizer: Callable, n_frames: int
+    loader: Iterable, localizer: Callable, localizer_args, n_frames: int
 ) -> Tuple[np.ndarray, int]:
     n_blobs = []
     for frame_idx, image in enumerate(loader):
-        locations = localizer(image)
+        locations = localizer(image, *localizer_args)
         n_blobs.append(locations.shape[0])
 
         if frame_idx >= n_frames:
