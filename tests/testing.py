@@ -33,14 +33,12 @@ loader = DataLoader(dataset, batch_size=1, pin_memory=True)
 df = _run(
     loader,
     localize_blob,
-    localize_kmeans,
+    localize_kmeans_torch,
     tracking,
     post_process,
     n_arenas=4,
     n_frames=1000,
     n_ini=100,
-    tensor=False,
-    device="cuda",
 )
 
 df.to_hdf("tests/df.hdf", key="df", complevel=9, complib="blosc")

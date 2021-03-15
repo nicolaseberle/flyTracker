@@ -20,14 +20,16 @@ def localize_kmeans(
     return locations
 
 
-def localize_kmeans_torch(image, init, threshold=120, device="cuda"):
-    image = image.to(device, non_blocking=True)
-    if not isinstance(init, torch.Tensor):
-        init = torch.tensor(init, dtype=torch.float32).to(device, non_blocking=True)
+def localize_kmeans_torch(image, prev_locations, threshold=120, device="cuda"):
+    initializing = len(prev_locations) == 1
+    if initializing:
+        prev_locations = [
+            torch.tensor(prev_locations[0], dtype=torch.float32).to(device)
+        ]
 
-    fly_pixels = torch.fliplr(
-        torch.nonzero(image.squeeze() < threshold).type(torch.float32)
-    )  # flip to be inline with opencv
+    image, init = image.squeeze().to(device, non_blocking=True), prev_locations[-1]
+    fly_pixels = torch.fliplr(torch.nonzero(image < threshold).type(torch.float32))
     locations = kmeans_torch(fly_pixels, init)
 
-    return locations
+    return prev_locations + [locations]
+
