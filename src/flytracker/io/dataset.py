@@ -20,6 +20,11 @@ class VideoDataset(torch.utils.data.IterableDataset):
 
         return self.preprocessor(image)
 
+    def set_frame(self, frame_idx):
+        """Set iterator to certain frame so next load
+        is frame_idx."""
+        self.reader.set(1, frame_idx)
+
 
 class TorchVideoDataset(torch.utils.data.IterableDataset):
     def __init__(self, path, mask):
