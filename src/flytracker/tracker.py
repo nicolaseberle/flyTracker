@@ -74,16 +74,16 @@ def _initialize(
     loader: Iterable, localizer: Callable, localizer_args, n_frames: int
 ) -> Tuple[np.ndarray, int]:
     n_blobs = []
-    for frame_idx, image in enumerate(loader):
+    for iteration_idx, (_, image) in enumerate(loader):
         locations = localizer(image, *localizer_args)
         n_blobs.append(locations.shape[0])
 
-        if frame_idx >= n_frames:
+        if iteration_idx >= n_frames:
             n_flies = int(np.median(n_blobs))
             if n_blobs[-1] == n_flies:
                 break
 
-    return locations, frame_idx
+    return locations
 
 
 def _localize(
@@ -95,7 +95,7 @@ def _localize(
 ) -> np.ndarray:
 
     locations = [initial_position]
-    for frame_idx, image in takewhile(lambda x: x[0] <= n_frames, enumerate(loader)):
+    for frame_idx, image in takewhile(lambda x: x[0] <= n_frames, loader):
         locations = localizer(image, locations, *localizer_args)
         if frame_idx % 1000 == 0:
             print(f"Done with frame {frame_idx}")

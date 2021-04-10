@@ -36,5 +36,10 @@ def localize_kmeans_torch(
     fly_pixels = torch.fliplr(torch.nonzero(image < threshold).type(torch.float32))
     locations = kmeans_torch(fly_pixels, init, tol=tol, device=device)
 
+    dist = torch.norm(locations - init)
+    if dist > 10:
+        print(dist, len(prev_locations))
+    if len(prev_locations) > 5200:
+        print(dist)
     return prev_locations + [locations]
 
