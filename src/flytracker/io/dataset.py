@@ -5,10 +5,9 @@ from torchvision.transforms.functional import rgb_to_grayscale
 
 
 class VideoDataset(torch.utils.data.IterableDataset):
-    def __init__(self, movie_path, preprocessing_fn, *preprocessing_args):
+    def __init__(self, movie_path):
         super().__init__()
         self.reader = cv2.VideoCapture(movie_path)
-        self.preprocessor = preprocessing_fn(*preprocessing_args)
 
     def __iter__(self):
         return self
@@ -18,7 +17,7 @@ class VideoDataset(torch.utils.data.IterableDataset):
         if succes is False:
             raise StopIteration
 
-        return self.preprocessor(image)
+        return image
 
     def set_frame(self, frame_idx):
         """Set iterator to certain frame so next load

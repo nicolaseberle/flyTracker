@@ -19,10 +19,29 @@ def preprocessing(mask, mapping_folder):
     return partial(_preprocessing, mask, mapping)
 
 
-def preprocessing_torch(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
-    """Preprocesses image to make it ready for kmeans."""
-    image = torch.tensor(image)
-    image = rgb_to_grayscale(image)
-    image = torch.where(mask, image.squeeze(), torch.tensor(255, dtype=torch.uint8))
-    return image
+def preprocessing_noremap(mask):
+    def _preprocessing(image) -> np.ndarray:
+        """Preprocesses image to make it ready for kmeans."""
+        # TODO: Turn mapping into generic function.
+        processed_image = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
+        processed_image[~mask] = 255
+        return processed_image
+
+    return _preprocessing
+
+
+def preprocessing_passthrough():
+    def _preprocessing(image) -> np.ndarray:
+        return image
+
+    return _preprocessing
+
+
+def preprocessing_torch(mask: np.ndarray, maskval) -> np.ndarray:
+    def _preprocessing(image):
+        image = rgb_to_grayscale(image.permute(2, 0, 1))
+        image = torch.where(mask, image.squeeze(), maskval)
+        return image
+
+    return _preprocessing
 
