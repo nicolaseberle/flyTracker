@@ -23,20 +23,18 @@ def localize_kmeans(
     return prev_locations + [locations]
 
 
-def localize_kmeans_torch(
-    image, prev_locations, preprocessor, threshold=120, device="cuda", tol=1e-4
-):
-    initializing = len(prev_locations) == 1
-    if initializing:
-        prev_locations = [
-            torch.tensor(prev_locations[0], dtype=torch.float32).to(device)
-        ]
+def localize_kmeans_torch(threshold=120, tol=1e-4, device="cuda"):
+    def localize(image, prev_locations):
+        initializing = len(prev_locations) == 1
+        if initializing:
+            prev_locations = [
+                torch.tensor(prev_locations[0], dtype=torch.float32).to(device)
+            ]
+        init = prev_locations[-1]
+        fly_pixels = torch.fliplr(torch.nonzero(image < threshold).type(torch.float32))
+        locations = kmeans_torch(fly_pixels, init, tol=tol, device=device)
 
-    image = image.squeeze().to(device, non_blocking=True)
-    image = preprocessor(image)
-    init = prev_locations[-1]
-    fly_pixels = torch.fliplr(torch.nonzero(image < threshold).type(torch.float32))
-    locations = kmeans_torch(fly_pixels, init, tol=tol, device=device)
+        return prev_locations + [locations]
 
-    return prev_locations + [locations]
+    return localize
 

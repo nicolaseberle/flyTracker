@@ -38,13 +38,9 @@ initial_position, initial_frame = _initialize(
 )
 
 preprocessor_main = preprocessing_torch(mask, device="cuda")
-
+localize_main = localize_kmeans_torch(120, 1e-4, "cuda")
 locs_sequential = _localize(
-    loader,
-    localize_kmeans_torch,
-    (preprocessor_main, 120, "cuda"),
-    initial_position,
-    n_frames,
+    loader, preprocessor_main, localize_main, initial_position, n_frames, "cuda"
 )
 stop = time()
 print(f"Time for sequential run: {stop - start}s")
@@ -61,13 +57,9 @@ initial_position, initial_frame = _initialize(
 )
 
 preprocessor_main = preprocessing_torch(mask, device="cuda")
-
+localize_main = localize_kmeans_torch(120, 1e-4, "cuda")
 locs_parallel = _localize(
-    loader,
-    localize_kmeans_torch,
-    (preprocessor_main, 120, "cuda"),
-    initial_position,
-    n_frames,
+    loader, preprocessor_main, localize_main, initial_position, n_frames, "cuda"
 )
 dataset.reader.stop()
 stop = time()

@@ -88,15 +88,17 @@ def _initialize(
 
 def _localize(
     loader: Iterable,
+    preprocessor: Callable,
     localizer: Callable,
-    localizer_args: Tuple,
-    initial_position: np.ndarray,
+    initial_position: torch.Tensor,
     n_frames: int,
+    device: str,
 ):
 
-    locations = [initial_position]
+    locations = [initial_position.to(device, non_blocking=True)]
     for frame_idx, image in takewhile(lambda x: x[0] <= n_frames, enumerate(loader)):
-        locations = localizer(image, locations, *localizer_args)
+        image = image.to(device, non_blocking=True)
+        locations = localizer(preprocessor(image), locations)
         if frame_idx % 1000 == 0:
             print(f"Done with frame {frame_idx}")
 
