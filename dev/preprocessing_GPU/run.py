@@ -3,7 +3,10 @@ from torch.utils.data import DataLoader
 from flytracker.io.dataset import VideoDataset
 
 from flytracker.tracker import _initialize, _localize
-from flytracker.preprocessing.preprocessing import preprocessing_torch
+from flytracker.preprocessing.preprocessing import (
+    preprocessing_torch,
+    preprocessing_blob,
+)
 from flytracker.localization.blob import localize_blob, default_blob_detector_params
 from flytracker.localization.kmeans import localize_kmeans_torch
 from time import time
@@ -28,7 +31,7 @@ start = time()
 dataset = VideoDataset(movie_path, parallel=False)
 loader = DataLoader(dataset, batch_size=None, pin_memory=True)
 
-preprocessor_ini = preprocessing_torch(mask, torch.tensor(255, dtype=torch.uint8))
+preprocessor_ini = preprocessing_blob(mask, torch.tensor(255, dtype=torch.uint8))
 localize_ini = localize_blob(default_blob_detector_params())
 initial_position, initial_frame = _initialize(
     loader, preprocessor_ini, localize_ini, 100
@@ -54,7 +57,7 @@ start = time()
 dataset = VideoDataset(movie_path, parallel=True)
 loader = DataLoader(dataset, batch_size=None, pin_memory=True)
 
-preprocessor_ini = preprocessing_torch(mask, torch.tensor(255, dtype=torch.uint8))
+preprocessor_ini = preprocessing_blob(mask, torch.tensor(255, dtype=torch.uint8))
 localize_ini = localize_blob(default_blob_detector_params())
 initial_position, initial_frame = _initialize(
     loader, preprocessor_ini, localize_ini, 100
