@@ -25,8 +25,9 @@ def localize_kmeans(
 def localize_kmeans_torch(threshold=120, tol=1e-4, device="cuda"):
     def localize(image, prev_location):
         fly_pixels = torch.fliplr(torch.nonzero(image < threshold).type(torch.float32))
-        locations = kmeans_torch(fly_pixels, prev_location, tol=tol, device=device)
+        locations, _ = kmeans(fly_pixels, prev_location)
         return locations
 
+    kmeans = kmeans_torch(tol=tol, device=device)
     return localize
 
