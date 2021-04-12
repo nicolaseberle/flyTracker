@@ -3,7 +3,6 @@ import cv2 as cv
 from sklearn.cluster import KMeans
 from .kmeans_torch import kmeans_torch
 import torch
-from torchvision.transforms.functional import rgb_to_grayscale
 
 
 def localize_kmeans(
@@ -24,17 +23,10 @@ def localize_kmeans(
 
 
 def localize_kmeans_torch(threshold=120, tol=1e-4, device="cuda"):
-    def localize(image, prev_locations):
-        initializing = len(prev_locations) == 1
-        if initializing:
-            prev_locations = [
-                torch.tensor(prev_locations[0], dtype=torch.float32).to(device)
-            ]
-        init = prev_locations[-1]
+    def localize(image, prev_location):
         fly_pixels = torch.fliplr(torch.nonzero(image < threshold).type(torch.float32))
-        locations = kmeans_torch(fly_pixels, init, tol=tol, device=device)
-
-        return prev_locations + [locations]
+        locations = kmeans_torch(fly_pixels, prev_location, tol=tol, device=device)
+        return locations
 
     return localize
 
