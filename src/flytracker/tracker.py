@@ -72,7 +72,7 @@ def _run(
 
 def _initialize(
     loader: Iterable, preprocessor: Callable, localizer: Callable, n_frames: int,
-) -> Tuple[np.ndarray, int]:
+):
     n_blobs = []
     for frame_idx, image in enumerate(loader):
         locations = localizer(preprocessor(image))
@@ -83,7 +83,7 @@ def _initialize(
             if n_blobs[-1] == n_flies:
                 break
 
-    return locations, frame_idx
+    return torch.tensor(locations, dtype=torch.float32), frame_idx
 
 
 def _localize(
@@ -92,7 +92,7 @@ def _localize(
     localizer_args: Tuple,
     initial_position: np.ndarray,
     n_frames: int,
-) -> np.ndarray:
+):
 
     locations = [initial_position]
     for frame_idx, image in takewhile(lambda x: x[0] <= n_frames, enumerate(loader)):
