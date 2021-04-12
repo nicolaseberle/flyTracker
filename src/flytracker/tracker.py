@@ -75,8 +75,7 @@ def _initialize(
 ) -> Tuple[np.ndarray, int]:
     n_blobs = []
     for frame_idx, image in enumerate(loader):
-        image = preprocessor(image).numpy().squeeze()
-        locations = localizer(image)
+        locations = localizer(preprocessor(image))
         n_blobs.append(locations.shape[0])
 
         if frame_idx >= n_frames:

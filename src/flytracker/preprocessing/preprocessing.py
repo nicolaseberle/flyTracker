@@ -37,11 +37,20 @@ def preprocessing_passthrough():
     return _preprocessing
 
 
-def preprocessing_torch(mask, maskval) -> np.ndarray:
+def preprocessing_torch(mask, maskval):
     def _preprocessing(image):
         image = rgb_to_grayscale(image.permute(2, 0, 1)).squeeze()
         image = torch.where(mask, image, maskval)
         return image
+
+    return _preprocessing
+
+
+def preprocessing_blob(mask, maskval):
+    def _preprocessing(image):
+        image = rgb_to_grayscale(image.permute(2, 0, 1)).squeeze()
+        image = torch.where(mask, image, maskval)
+        return image.numpy().squeeze()
 
     return _preprocessing
 
