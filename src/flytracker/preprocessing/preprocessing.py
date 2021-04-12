@@ -37,20 +37,23 @@ def preprocessing_passthrough():
     return _preprocessing
 
 
-def preprocessing_torch(mask, maskval):
+def preprocessing_torch(mask, device="cuda"):
     def _preprocessing(image):
         image = rgb_to_grayscale(image.permute(2, 0, 1)).squeeze()
-        image = torch.where(mask, image, maskval)
+        image = torch.where(mask, image, mask_val)
         return image
 
+    mask = mask.to(device)
+    mask_val = torch.tensor(255, dtype=torch.uint8, device=device)
     return _preprocessing
 
 
-def preprocessing_blob(mask, maskval):
+def preprocessing_blob(mask):
     def _preprocessing(image):
         image = rgb_to_grayscale(image.permute(2, 0, 1)).squeeze()
-        image = torch.where(mask, image, maskval)
+        image = torch.where(mask, image, mask_val)
         return image.numpy().squeeze()
 
+    mask_val = torch.tensor(255, dtype=torch.uint8)
     return _preprocessing
 
