@@ -1,13 +1,16 @@
 import torch
 import cv2
 from torchvision import io
-from torchvision.transforms.functional import rgb_to_grayscale
+from .videoreader import VideoReader
 
 
 class VideoDataset(torch.utils.data.IterableDataset):
-    def __init__(self, movie_path):
+    def __init__(self, path, parallel=False):
         super().__init__()
-        self.reader = cv2.VideoCapture(movie_path)
+        if parallel:
+            self.reader = VideoReader(path)
+        else:
+            self.reader = cv2.VideoCapture(path)
 
     def __iter__(self):
         return self
@@ -26,17 +29,16 @@ class VideoDataset(torch.utils.data.IterableDataset):
 
 
 class TorchVideoDataset(torch.utils.data.IterableDataset):
-    def __init__(self, path, mask):
+    def __init__(self, path):
         super().__init__()
         self.reader = io.VideoReader(path)
-        self.mask = torch.tensor(mask, dtype=torch.bool)
 
     def __iter__(self):
         return self
 
     def __next__(self) -> torch.Tensor:
-        # Loading image
-        image = next(self.reader)["data"]
-        image = rgb_to_grayscale(image).squeeze()
-        image = torch.where(self.mask, image, torch.tensor(255, dtype=torch.uint8))
+        # opencv loads differently and we permute for that
+        image = next(self.reader)["data"].permute(1, 2, 0)
+        if image is None:
+            raise StopIteration
         return image

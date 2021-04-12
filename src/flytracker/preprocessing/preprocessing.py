@@ -31,16 +31,16 @@ def preprocessing_noremap(mask):
 
 
 def preprocessing_passthrough():
-    def _preprocessing(image) -> np.ndarray:
+    def _preprocessing(image):
         return image
 
     return _preprocessing
 
 
-def preprocessing_torch(mask: np.ndarray, maskval) -> np.ndarray:
+def preprocessing_torch(mask, maskval) -> np.ndarray:
     def _preprocessing(image):
-        image = rgb_to_grayscale(image.permute(2, 0, 1))
-        image = torch.where(mask, image.squeeze(), maskval)
+        image = rgb_to_grayscale(image.permute(2, 0, 1)).squeeze()
+        image = torch.where(mask, image, maskval)
         return image
 
     return _preprocessing
