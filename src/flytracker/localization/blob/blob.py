@@ -27,8 +27,10 @@ def default_blob_detector_params() -> object:
 
 def localize_blob(blob_detector_params):
     def localize(image):
+        # opencv has diffeent axis ordering compared to pytorch nonzero
+        # so we flip the column order.
         keypoints = blob_detector.detect(image)  # get keypoints
-        return np.array([keypoint.pt for keypoint in keypoints])
+        return np.fliplr(np.array([keypoint.pt for keypoint in keypoints]))
 
     blob_detector = cv2.SimpleBlobDetector_create(blob_detector_params)
     return localize
