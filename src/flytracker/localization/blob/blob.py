@@ -25,11 +25,9 @@ def default_blob_detector_params() -> object:
     return params
 
 
-def localize_blob(image: np.ndarray, blob_detector_params, preprocessor) -> np.ndarray:
+def localize_blob(image: np.ndarray, blob_detector_params) -> np.ndarray:
     """Find flies using blob detector"""
     blob_detector = cv.SimpleBlobDetector_create(blob_detector_params)
-    keypoints = blob_detector.detect(
-        preprocessor(image).numpy().squeeze()
-    )  # get keypoints
+    keypoints = blob_detector.detect(image)  # get keypoints
     return np.array([keypoint.pt for keypoint in keypoints])
 

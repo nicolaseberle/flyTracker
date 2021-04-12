@@ -71,10 +71,15 @@ def _run(
 
 
 def _initialize(
-    loader: Iterable, localizer: Callable, localizer_args, n_frames: int
+    loader: Iterable,
+    preprocessor: Callable,
+    localizer: Callable,
+    localizer_args,
+    n_frames: int,
 ) -> Tuple[np.ndarray, int]:
     n_blobs = []
     for frame_idx, image in enumerate(loader):
+        image = preprocessor(image).numpy().squeeze()
         locations = localizer(image, *localizer_args)
         n_blobs.append(locations.shape[0])
 

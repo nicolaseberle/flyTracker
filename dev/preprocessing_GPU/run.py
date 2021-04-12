@@ -9,7 +9,7 @@ from flytracker.localization.kmeans import localize_kmeans_torch
 from time import time
 
 movie_path = "data/experiments/bruno/videos/seq_1.mp4"
-n_frames = 5000
+n_frames = 1000
 
 mask = torch.ones((1080, 1280), dtype=bool)
 mask[:130, :] = 0
@@ -30,7 +30,7 @@ loader = DataLoader(dataset, batch_size=None, pin_memory=True)
 
 preprocessor_ini = preprocessing_torch(mask, torch.tensor(255, dtype=torch.uint8))
 initial_position, initial_frame = _initialize(
-    loader, localize_blob, (default_blob_detector_params(), preprocessor_ini), 100
+    loader, preprocessor_ini, localize_blob, (default_blob_detector_params(),), 100
 )
 preprocessor_main = preprocessing_torch(
     mask.cuda(), torch.tensor(255, dtype=torch.uint8).cuda()
@@ -53,7 +53,7 @@ loader = DataLoader(dataset, batch_size=None, pin_memory=True)
 
 preprocessor_ini = preprocessing_torch(mask, torch.tensor(255, dtype=torch.uint8))
 initial_position, initial_frame = _initialize(
-    loader, localize_blob, (default_blob_detector_params(), preprocessor_ini), 100
+    loader, preprocessor_ini, localize_blob, (default_blob_detector_params(),), 100
 )
 preprocessor_main = preprocessing_torch(
     mask.cuda(), torch.tensor(255, dtype=torch.uint8).cuda()
