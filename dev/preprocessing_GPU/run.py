@@ -29,9 +29,12 @@ dataset = VideoDataset(movie_path, parallel=False)
 loader = DataLoader(dataset, batch_size=None, pin_memory=True)
 
 preprocessor_ini = preprocessing_torch(mask, torch.tensor(255, dtype=torch.uint8))
+localize_ini = localize_blob(default_blob_detector_params())
 initial_position, initial_frame = _initialize(
-    loader, preprocessor_ini, localize_blob, (default_blob_detector_params(),), 100
+    loader, preprocessor_ini, localize_ini, 100
 )
+
+
 preprocessor_main = preprocessing_torch(
     mask.cuda(), torch.tensor(255, dtype=torch.uint8).cuda()
 )
@@ -52,9 +55,11 @@ dataset = VideoDataset(movie_path, parallel=True)
 loader = DataLoader(dataset, batch_size=None, pin_memory=True)
 
 preprocessor_ini = preprocessing_torch(mask, torch.tensor(255, dtype=torch.uint8))
+localize_ini = localize_blob(default_blob_detector_params())
 initial_position, initial_frame = _initialize(
-    loader, preprocessor_ini, localize_blob, (default_blob_detector_params(),), 100
+    loader, preprocessor_ini, localize_ini, 100
 )
+
 preprocessor_main = preprocessing_torch(
     mask.cuda(), torch.tensor(255, dtype=torch.uint8).cuda()
 )
