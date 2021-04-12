@@ -6,7 +6,7 @@ from functools import partial
 def kmeans_torch(tol=1e-4, device="cuda"):
     def kmeans(X, init):
         n_samples, n_clusters = X.shape[0], init.shape[0]
-        M = torch.zeros((n_clusters, n_samples)).to(device, non_blocking=True)
+        M = torch.zeros((n_clusters, n_samples), device=device)
         update = partial(EM_step, X, M)
 
         new_centers, old_centers = update(init)[0], init

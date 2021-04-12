@@ -7,7 +7,8 @@ from .videoreader import VideoReader
 class VideoDataset(torch.utils.data.IterableDataset):
     def __init__(self, path, parallel=False):
         super().__init__()
-        if parallel:
+        self.parallel = parallel
+        if self.parallel:
             self.reader = VideoReader(path)
         else:
             self.reader = cv2.VideoCapture(path)

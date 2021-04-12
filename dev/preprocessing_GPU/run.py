@@ -4,7 +4,7 @@ from flytracker.io.dataset import VideoDataset
 
 from flytracker.tracker import _initialize, _localize
 from flytracker.preprocessing.preprocessing import (
-    preprocessing_torch,
+    preprocessing_kmeans,
     preprocessing_blob,
 )
 from flytracker.localization.blob import localize_blob, default_blob_detector_params
@@ -12,7 +12,7 @@ from flytracker.localization.kmeans import localize_kmeans_torch
 from time import time
 
 movie_path = "data/experiments/bruno/videos/seq_1.mp4"
-n_frames = 1000
+n_frames = 5000
 
 mask = torch.ones((1080, 1280), dtype=bool)
 mask[:130, :] = 0
@@ -37,7 +37,7 @@ initial_position, initial_frame = _initialize(
     loader, preprocessor_ini, localize_ini, 100
 )
 
-preprocessor_main = preprocessing_torch(mask, device="cuda")
+preprocessor_main = preprocessing_kmeans(mask, device="cuda")
 localize_main = localize_kmeans_torch(120, 1e-4, "cuda")
 locs_sequential = _localize(
     loader, preprocessor_main, localize_main, initial_position, n_frames, "cuda"
@@ -56,7 +56,7 @@ initial_position, initial_frame = _initialize(
     loader, preprocessor_ini, localize_ini, 100
 )
 
-preprocessor_main = preprocessing_torch(mask, device="cuda")
+preprocessor_main = preprocessing_kmeans(mask, device="cuda")
 localize_main = localize_kmeans_torch(120, 1e-4, "cuda")
 locs_parallel = _localize(
     loader, preprocessor_main, localize_main, initial_position, n_frames, "cuda"

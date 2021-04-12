@@ -37,7 +37,7 @@ def preprocessing_passthrough():
     return _preprocessing
 
 
-def preprocessing_torch(mask, device="cuda"):
+def preprocessing_kmeans(mask, device="cuda"):
     def _preprocessing(image):
         image = rgb_to_grayscale(image.permute(2, 0, 1)).squeeze()
         image = torch.where(mask, image, mask_val)
