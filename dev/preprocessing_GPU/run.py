@@ -37,7 +37,6 @@ initial_position, initial_frame = _initialize(
     loader, preprocessor_ini, localize_ini, 100
 )
 
-
 preprocessor_main = preprocessing_torch(
     mask.cuda(), torch.tensor(255, dtype=torch.uint8).cuda()
 )
