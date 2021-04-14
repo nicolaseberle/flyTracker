@@ -23,7 +23,7 @@ df = run(
     movie_path,
     mask,
     n_arenas=4,
-    n_frames=5000,
+    n_frames=500,
     gpu=True,
     parallel=True,
     n_ini=100,
@@ -31,15 +31,9 @@ df = run(
 )
 stop = time()
 print(f"Running took {stop-start}s")
-# df.to_hdf("tests/df.hdf", key="df", complevel=9, complib="blosc")
+df.to_hdf("tests/df.hdf", key="df", complevel=9, complib="blosc")
 
-# print("Starting annotating.")
-# annotate(
-#    df,
-#    movie_path,
-#    mapping_folder,
-#    "tests/annotated_video.mp4",
-#    max_frames=1000,
-#    track_length=30,
-#    touching_distance=10,
-# )
+print("Starting annotating.")
+annotate(
+    df, movie_path, "tests/annotated_video.mp4", track_length=30, touching_distance=10,
+)

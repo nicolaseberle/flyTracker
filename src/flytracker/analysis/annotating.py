@@ -8,18 +8,10 @@ from scipy.spatial import distance_matrix
 from seaborn import color_palette
 
 from ..io import DataLoader
-from ..preprocessing.undistort_mapping import construct_undistort_map
 
 
 def annotate(
-    df,
-    movie_path,
-    mapping_folder,
-    output_loc,
-    max_frames=None,
-    track_length=30,
-    touching_distance=10,
-    image_size=(1080, 1280),
+    df, movie_path, output_loc, max_frames=None, track_length=30, touching_distance=10,
 ):
 
     # Parsing dataframe to numpy array - much faster
@@ -32,13 +24,12 @@ def annotate(
     n_frames = data.shape[0] if max_frames is None else max_frames
 
     assert movie_path.split(".")[-1] == "mp4", "Movie should be mp4."
-    dataset = VideoDataset(movie_path, preprocessing, mapping_folder, image_size)
+    loader = DataLoader(movie_path, parallel=False)
     # plus 1 for intiial frame since we plot (n-1, n)
-    dataset.set_frame(initial_frame + 1)
+    loader.dataset.set_frame(initial_frame + 1)
 
     # Setting up loader and writer
-    loader = DataLoader(dataset, batch_size=1, pin_memory=True)
-    writer = setup_writer(output_loc, image_size, fps=30)
+    writer = None
 
     for idx, image in takewhile(lambda x: x[0] < n_frames, enumerate(loader, start=1)):
         image = image.numpy().squeeze()
@@ -48,6 +39,10 @@ def annotate(
         # First write tracks so that numbers don't get occluded.
         image = write_tracks(image, data[lower_frame:upper_frame], color_fn)
         image = write_ID(image, data[upper_frame], touching_distance=touching_distance)
+        if writer is None:
+            # first two are image size - somehow we need to invert shapes to get opencv to write
+            writer = setup_writer(output_loc, image.shape[:2][::-1], fps=30)
+
         writer.write(image)
 
         if idx % 1000 == 0:
@@ -57,16 +52,6 @@ def annotate(
     # Compressing to h264 with ffmpeg
     compressed_loc = output_loc.split(".")[0] + "_compressed.mp4"
     os.system(f"ffmpeg -i {output_loc} -an -vcodec libx264 -crf 23 {compressed_loc}")
-
-
-def preprocessing(mapping_folder, image_size):
-    def _preprocessing(image) -> np.ndarray:
-        """Preprocesses image to make it ready for kmeans."""
-        processed_image = cv2.remap(image, *mapping, cv2.INTER_LINEAR)
-        return processed_image
-
-    mapping = construct_undistort_map(image_size, mapping_folder)
-    return _preprocessing
 
 
 def parse_data(df):
@@ -128,13 +113,13 @@ def write_ID(image, frame_info, touching_distance=10):
     touching = np.sum(dist_matrix < touching_distance, axis=0) >= 2
     # we just iterate over the rows
     for fly in frame_info:
-        image = add_fly_ID(image, fly[[2, 3]], fly[1], touching[fly[1]])
+        image = add_fly_ID(image, fly[[3, 2]], fly[1], touching[fly[1]])
     return image
 
 
 def write_tracks(image, data, color_fn):
     for idx in np.arange(data.shape[1]):
-        image = cv2.polylines(image, [data[:, idx, [2, 3]]], False, color_fn(idx), 1)
+        image = cv2.polylines(image, [data[:, idx, [3, 2]]], False, color_fn(idx), 1)
     return image
 
 
