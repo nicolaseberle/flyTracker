@@ -24,17 +24,17 @@ def run(
 ) -> pd.DataFrame:
     """User facing run function with sensible standard settings."""
 
-    loader = DataLoader(movie_path, parallel=parallel, max_queue=20)
-
     if gpu:
         device = "cuda"
         main_localizer = localize_kmeans_torch
         localizer_args = (threshold, 1e-4, device)
     else:
         device = "cpu"
+        parallel = False  # parallel doesnt work on cpu
         main_localizer = localize_kmeans_sklearn
         localizer_args = (threshold, 1e-4)
 
+    loader = DataLoader(movie_path, parallel=parallel, max_queue=20)
     return _run(
         loader,
         preprocessing_blob(mask),
