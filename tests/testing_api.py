@@ -1,5 +1,6 @@
 import torch
 from flytracker import run
+
 from flytracker.analysis import annotate
 from time import time
 

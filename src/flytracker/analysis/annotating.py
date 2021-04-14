@@ -3,12 +3,11 @@ import cv2
 import numpy as np
 import os
 
-from torch.utils.data import DataLoader
 from itertools import takewhile
 from scipy.spatial import distance_matrix
 from seaborn import color_palette
 
-from ..io import VideoDataset
+from ..io import DataLoader
 from ..preprocessing.undistort_mapping import construct_undistort_map
 
 

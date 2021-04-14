@@ -1,11 +1,10 @@
 import numpy as np
 import pandas as pd
 import torch
-from torch.utils.data import DataLoader
 from itertools import takewhile
 from typing import Callable, Iterable
 
-from .io import VideoDataset
+from .io import DataLoader
 from .preprocessing import preprocessing_blob, preprocessing_kmeans
 from .localization.blob import localize_blob, default_blob_detector_params
 from .localization.kmeans import localize_kmeans_sklearn, localize_kmeans_torch
@@ -25,8 +24,7 @@ def run(
 ) -> pd.DataFrame:
     """User facing run function with sensible standard settings."""
 
-    dataset = VideoDataset(movie_path, parallel=parallel)
-    loader = DataLoader(dataset, batch_size=None, pin_memory=True)
+    loader = DataLoader(movie_path, parallel=parallel, max_queue=20)
 
     if gpu:
         device = "cuda"
@@ -73,8 +71,7 @@ def _run(
     locations = _localize(
         loader, main_preprocessor, main_localizer, initial_position, n_frames, device,
     )
-    if loader.dataset.parallel is True:
-        loader.dataset.reader.stop()
+    loader.stop()
     ordered_locations = tracker(locations)
     df = post_process(ordered_locations, initial_frame, n_arenas)
     return df
