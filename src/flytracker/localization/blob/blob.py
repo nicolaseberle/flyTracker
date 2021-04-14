@@ -1,11 +1,11 @@
 import numpy as np
-import cv2 as cv
+import cv2
 
 
 def default_blob_detector_params() -> object:
     """Blob detector params used to perform initial localization."""
     # Setup SimpleBlobDetector parameters.
-    params = cv.SimpleBlobDetector_Params()
+    params = cv2.SimpleBlobDetector_Params()
 
     # Change thresholds
     params.minThreshold = 20
@@ -25,9 +25,13 @@ def default_blob_detector_params() -> object:
     return params
 
 
-def localize_blob(image: np.ndarray, blob_detector_params) -> np.ndarray:
-    """Find flies using blob detector"""
-    blob_detector = cv.SimpleBlobDetector_create(blob_detector_params)
-    keypoints = blob_detector.detect(image.numpy().squeeze())  # get keypoints
-    return np.array([keypoint.pt for keypoint in keypoints])
+def localize_blob(blob_detector_params):
+    def localize(image):
+        # opencv has diffeent axis ordering compared to pytorch nonzero
+        # so we flip the column order.
+        keypoints = blob_detector.detect(image)  # get keypoints
+        return np.fliplr(np.array([keypoint.pt for keypoint in keypoints])).copy()
+
+    blob_detector = cv2.SimpleBlobDetector_create(blob_detector_params)
+    return localize
 

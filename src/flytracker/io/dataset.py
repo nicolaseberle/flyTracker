@@ -1,14 +1,31 @@
 import torch
 import cv2
 from torchvision import io
-from torchvision.transforms.functional import rgb_to_grayscale
+from .videoreader import VideoReader
+
+
+class DataLoader(torch.utils.data.DataLoader):
+    def __init__(self, path, parallel, **reader_kwargs):
+        self.parallel = parallel
+        super().__init__(
+            VideoDataset(path, self.parallel, **reader_kwargs),
+            batch_size=None,
+            pin_memory=True,
+        )
+
+    def stop(self):
+        if self.parallel:
+            self.dataset.reader.stop()
 
 
 class VideoDataset(torch.utils.data.IterableDataset):
-    def __init__(self, movie_path, preprocessing_fn, *preprocessing_args):
+    def __init__(self, path, parallel=False, **reader_kwargs):
         super().__init__()
-        self.reader = cv2.VideoCapture(movie_path)
-        self.preprocessor = preprocessing_fn(*preprocessing_args)
+        self.parallel = parallel
+        if self.parallel:
+            self.reader = VideoReader(path, **reader_kwargs)
+        else:
+            self.reader = cv2.VideoCapture(path, **reader_kwargs)
 
     def __iter__(self):
         return self
@@ -18,7 +35,7 @@ class VideoDataset(torch.utils.data.IterableDataset):
         if succes is False:
             raise StopIteration
 
-        return self.preprocessor(image)
+        return image
 
     def set_frame(self, frame_idx):
         """Set iterator to certain frame so next load
@@ -27,17 +44,16 @@ class VideoDataset(torch.utils.data.IterableDataset):
 
 
 class TorchVideoDataset(torch.utils.data.IterableDataset):
-    def __init__(self, path, mask):
+    def __init__(self, path):
         super().__init__()
         self.reader = io.VideoReader(path)
-        self.mask = torch.tensor(mask, dtype=torch.bool)
 
     def __iter__(self):
         return self
 
     def __next__(self) -> torch.Tensor:
-        # Loading image
-        image = next(self.reader)["data"]
-        image = rgb_to_grayscale(image).squeeze()
-        image = torch.where(self.mask, image, torch.tensor(255, dtype=torch.uint8))
+        # opencv loads differently and we permute for that
+        image = next(self.reader)["data"].permute(1, 2, 0)
+        if image is None:
+            raise StopIteration
         return image
