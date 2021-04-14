@@ -8,7 +8,7 @@ from typing import Callable, Iterable
 from .io import VideoDataset
 from .preprocessing import preprocessing_blob, preprocessing_kmeans
 from .localization.blob import localize_blob, default_blob_detector_params
-from .localization.kmeans import localize_kmeans, localize_kmeans_torch
+from .localization.kmeans import localize_kmeans_sklearn, localize_kmeans_torch
 from .tracking import tracking
 from .analysis import post_process
 
@@ -34,7 +34,7 @@ def run(
         localizer_args = (threshold, 1e-4, device)
     else:
         device = "cpu"
-        main_localizer = localize_kmeans
+        main_localizer = localize_kmeans_sklearn
         localizer_args = (threshold, 1e-4)
 
     return _run(
