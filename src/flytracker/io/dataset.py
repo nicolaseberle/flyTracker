@@ -1,6 +1,8 @@
 import torch
 import cv2
 from torchvision import io
+
+from flytracker.analysis import postprocessing
 from .videoreader import VideoReader
 
 
@@ -16,6 +18,18 @@ class DataLoader(torch.utils.data.DataLoader):
     def stop(self):
         if self.parallel:
             self.dataset.reader.stop()
+
+    @property
+    def frames(self,):
+        return int(self.dataset.reader.get(cv2.CAP_PROP_FRAME_COUNT))
+
+    @property
+    def current_frame(self,):
+        return int(self.dataset.reader.get(cv2.CAP_PROP_POS_FRAMES))
+
+    @property
+    def remaining_frames(self,):
+        return int(self.frames - self.current_frame)
 
 
 class VideoDataset(torch.utils.data.IterableDataset):
