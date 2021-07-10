@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import torch
 from itertools import takewhile
-from typing import Callable, Iterable
+from typing import Callable, Iterable, List
 
 from .io import DataLoader
 from .preprocessing import preprocessing_blob, preprocessing_kmeans
@@ -69,20 +69,26 @@ def _run(
 ):
 
     initial_position, initial_frame = _initialize(
-        loader, initial_preprocessor, initial_localizer, n_ini,
+        loader, initial_preprocessor, initial_localizer, n_ini, device
     )
 
-    locations = _localize(
-        loader, main_preprocessor, main_localizer, initial_position, n_frames, device,
+    locations, frames = _localize(
+        loader,
+        main_preprocessor,
+        main_localizer,
+        initial_position,
+        initial_frame,
+        n_frames,
+        device,
     )
     loader.stop()
     ordered_locations = tracker(locations)
-    df = post_process(ordered_locations, initial_frame, n_arenas)
+    df = post_process(ordered_locations, frames, n_arenas)
     return df
 
 
 def _initialize(
-    loader: Iterable, preprocessor: Callable, localizer: Callable, n_frames: int,
+    loader: Iterable, preprocessor: Callable, localizer: Callable, n_frames: int, device
 ):
     n_blobs = []
     for enum_idx, (frame_idx, image) in enumerate(loader):
@@ -94,26 +100,30 @@ def _initialize(
             if n_blobs[-1] == n_flies:
                 break
 
-    return torch.tensor(locations, dtype=torch.float32), frame_idx
+    return (
+        [torch.tensor(locations, dtype=torch.float32).to(device, non_blocking=True)],
+        [frame_idx],
+    )
 
 
 def _localize(
     loader: Iterable,
     preprocessor: Callable,
     localizer: Callable,
-    initial_position: torch.Tensor,
+    locations: List[torch.Tensor],
+    frames: List[torch.Tensor],
     n_frames: int,
     device: str,
 ):
 
-    locations = [initial_position.to(device, non_blocking=True)]
     for _, (frame_idx, image) in takewhile(
         lambda x: x[0] <= n_frames, enumerate(loader)
     ):
         image = image.to(device, non_blocking=True)
         frame_locs = localizer(preprocessor(image), locations[-1])
         locations.append(frame_locs)
+        frames.append(frame_idx)
         if frame_idx % 1000 == 0:
             print(f"Done with frame {frame_idx}")
 
-    return locations
+    return locations, frames
