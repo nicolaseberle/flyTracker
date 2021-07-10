@@ -55,7 +55,7 @@ def run(
 
 
 def _run(
-    loader: Iterable,
+    loader: DataLoader,
     initial_preprocessor: Callable,
     initial_localizer: Callable,
     main_preprocessor: Callable,
@@ -87,7 +87,11 @@ def _run(
 
 
 def _initialize(
-    loader: Iterable, preprocessor: Callable, localizer: Callable, n_frames: int, device
+    loader: DataLoader,
+    preprocessor: Callable,
+    localizer: Callable,
+    n_frames: int,
+    device,
 ):
     n_blobs = []
     for enum_idx, (frame_idx, image) in enumerate(loader):
@@ -106,7 +110,7 @@ def _initialize(
 
 
 def _localize(
-    loader: Iterable,
+    loader: DataLoader,
     preprocessor: Callable,
     localizer: Callable,
     locations: List[torch.Tensor],
