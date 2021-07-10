@@ -85,11 +85,11 @@ def _initialize(
     loader: Iterable, preprocessor: Callable, localizer: Callable, n_frames: int,
 ):
     n_blobs = []
-    for frame_idx, (_, image) in enumerate(loader):
+    for enum_idx, (frame_idx, image) in enumerate(loader):
         locations = localizer(preprocessor(image))
         n_blobs.append(locations.shape[0])
 
-        if frame_idx >= n_frames:
+        if enum_idx >= n_frames:
             n_flies = int(np.median(n_blobs))
             if n_blobs[-1] == n_flies:
                 break
