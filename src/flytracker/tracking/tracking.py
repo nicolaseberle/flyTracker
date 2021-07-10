@@ -5,10 +5,8 @@ import torch
 
 
 def tracking(locations, ordering_fn=hungarian):
-    if isinstance(locations[-1], torch.Tensor):
-        locs = torch.stack(locations, dim=0).cpu().numpy()
-    else:
-        locs = np.stack(locations, axis=0)
+    if isinstance(locations, torch.Tensor):
+        locations = locations.cpu().numpy()
 
-    ordered_locs = list(accumulate(locs, ordering_fn))
+    ordered_locs = list(accumulate(locations, ordering_fn))
     return ordered_locs

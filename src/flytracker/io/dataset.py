@@ -1,8 +1,6 @@
 import torch
 import cv2
 from torchvision import io
-
-from flytracker.analysis import postprocessing
 from .videoreader import VideoReader
 
 
@@ -46,7 +44,7 @@ class VideoDataset(torch.utils.data.IterableDataset):
 
     def __next__(self):
         if not self.parallel:
-            frame_idx = self.reader.get(cv2.CAP_PROP_POS_FRAMES)
+            frame_idx = int(self.reader.get(cv2.CAP_PROP_POS_FRAMES))
         else:
             frame_idx = 0
         succes, image = self.reader.read()
