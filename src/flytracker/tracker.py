@@ -81,7 +81,6 @@ def _run(
         n_frames,
         device,
     )
-    loader.stop()
     ordered_locations = tracker(locations)
     df = post_process(ordered_locations, frames, n_arenas)
     return df
@@ -126,4 +125,5 @@ def _localize(
         if frame_idx % 1000 == 0:
             print(f"Done with frame {frame_idx}")
 
+    loader.stop()
     return locations, frames
