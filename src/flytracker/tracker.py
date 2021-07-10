@@ -85,7 +85,7 @@ def _initialize(
     loader: Iterable, preprocessor: Callable, localizer: Callable, n_frames: int,
 ):
     n_blobs = []
-    for frame_idx, image in enumerate(loader):
+    for frame_idx, (_, image) in enumerate(loader):
         locations = localizer(preprocessor(image))
         n_blobs.append(locations.shape[0])
 
@@ -107,7 +107,9 @@ def _localize(
 ):
 
     locations = [initial_position.to(device, non_blocking=True)]
-    for frame_idx, image in takewhile(lambda x: x[0] <= n_frames, enumerate(loader)):
+    for _, (frame_idx, image) in takewhile(
+        lambda x: x[0] <= n_frames, enumerate(loader)
+    ):
         image = image.to(device, non_blocking=True)
         frame_locs = localizer(preprocessor(image), locations[-1])
         locations.append(frame_locs)

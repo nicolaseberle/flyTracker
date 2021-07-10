@@ -9,7 +9,7 @@ def load_frame(path: str, frame: int, color=False):
     loader = DataLoader(path, parallel=False)
     loader.dataset.set_frame(frame)
 
-    _, image = next(enumerate(loader))
+    _, (_, image) = next(enumerate(loader))
     if not color:
         image = rgb_to_grayscale(image.permute(2, 0, 1)).squeeze()
 

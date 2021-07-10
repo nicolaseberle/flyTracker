@@ -31,11 +31,15 @@ class VideoDataset(torch.utils.data.IterableDataset):
         return self
 
     def __next__(self):
+        if not self.parallel:
+            frame_idx = self.reader.get(cv2.CAP_PROP_POS_FRAMES)
+        else:
+            frame_idx = 0
         succes, image = self.reader.read()
         if succes is False:
             raise StopIteration
 
-        return image
+        return frame_idx, image
 
     def set_frame(self, frame_idx):
         """Set iterator to certain frame so next load
