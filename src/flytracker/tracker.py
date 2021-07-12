@@ -115,8 +115,7 @@ def _localize(
         lambda x: x[0] <= n_frames, enumerate(loader)
     ):
         image = image.to(device, non_blocking=True)
-        frame_locs = localizer(preprocessor(image), locations[-1])
-        locations[frame_idx] = frame_locs
+        locations[frame_idx] = localizer(preprocessor(image), locations[frame_idx - 1])
         if frame_idx % 1000 == 0:
             print(f"Done with frame {frame_idx}")
 
