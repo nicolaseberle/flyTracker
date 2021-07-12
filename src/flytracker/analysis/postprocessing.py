@@ -3,14 +3,14 @@ import pandas as pd
 from sklearn.cluster import k_means
 
 
-def post_process(locations, n_arenas):
+def post_process(locations, n_arenas, ini_frame):
     # Getting some useful properties
     n_frames = len(locations)
     n_flies = len(locations[0])
 
     # finding identities and frames
     identities = np.tile(np.arange(n_flies), n_frames)[:, None]
-    frames = np.repeat(np.arange(n_frames), n_flies)[:, None]
+    frames = np.repeat(np.arange(ini_frame, n_frames + ini_frame), n_flies)[:, None]
 
     # Making dataframe
     df = pd.DataFrame(
@@ -19,6 +19,7 @@ def post_process(locations, n_arenas):
 
     # Adding arenas and reordering flies
     df[["x", "y"]] = np.concatenate(locations, axis=0)
+
     df = find_arena(df, n_arenas)
     df = order_flies(df)
 
