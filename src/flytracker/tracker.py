@@ -74,7 +74,9 @@ def _run(
     positions = _localize(
         loader, main_preprocessor, main_localizer, positions, n_frames, device,
     )
-    positions = tracker(positions[ini_frame:n_frames])  # cutting off unused at the end
+    if n_frames is not np.inf:
+        positions = positions[:n_frames]
+    positions = tracker(positions[ini_frame:])
     df = post_process(positions, n_arenas, ini_frame)
     return df
 
