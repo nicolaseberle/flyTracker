@@ -113,15 +113,25 @@ def _localize(
     device: str,
 ):
 
+    initializing_frame = None
+    max_change = 20
     for _, (frame_idx, image) in takewhile(
         lambda x: x[0] <= n_frames, enumerate(loader)
     ):
         image = image.to(device, non_blocking=True)
-        locations[frame_idx, :, :2] = localizer(
-            preprocessor(image), locations[frame_idx - 1, :, :2]
+        if initializing_frame is None:
+            initializing_frame = frame_idx - 1
+        new_positions = localizer(
+            preprocessor(image), locations[initializing_frame, :, :2]
         )
+
+        fly_space_distance = torch.linalg.norm(
+            new_positions.sum(axis=0) - locations[initializing_frame, :, :2].sum(axis=0)
+        )
+        if fly_space_distance < max_change:
+            locations[frame_idx, :, :2] = new_positions
+            initializing_frame = frame_idx
         if frame_idx % 1000 == 0:
             print(f"Done with frame {frame_idx}")
-
     loader.stop()
     return locations
