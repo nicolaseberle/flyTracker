@@ -21,6 +21,7 @@ def run(
     gpu: bool = True,
     parallel: bool = True,
     threshold: int = 120,
+    max_change: float = 20.0,
 ) -> pd.DataFrame:
     """User facing run function with sensible standard settings."""
 
@@ -51,6 +52,7 @@ def run(
         n_frames,
         n_ini,
         device,
+        max_change,
     )
 
 
@@ -66,13 +68,20 @@ def _run(
     n_frames: int,
     n_ini: int,
     device: str,
+    max_change: float,
 ):
 
     positions = _initialize(
         loader, initial_preprocessor, initial_localizer, n_ini, device
     )
     positions = _localize(
-        loader, main_preprocessor, main_localizer, positions, n_frames, device,
+        loader,
+        main_preprocessor,
+        main_localizer,
+        positions,
+        n_frames,
+        device,
+        max_change,
     )
     non_zero_frames = torch.sum(positions[:, :, :2], axis=[1, 2]) != 0
     positions = tracker(positions[non_zero_frames])
@@ -111,10 +120,10 @@ def _localize(
     locations: torch.Tensor,
     n_frames: int,
     device: str,
+    max_change: float,
 ):
 
     initializing_frame = None
-    max_change = 20
     for _, (frame_idx, image) in takewhile(
         lambda x: x[0] <= n_frames, enumerate(loader)
     ):
