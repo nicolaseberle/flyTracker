@@ -18,7 +18,7 @@ def post_process(locations, n_arenas):
     )
     # Adding arenas and reordering flies
     df = find_arena(df, n_arenas)
-    # df = order_flies(df)
+    df = order_flies(df)
 
     return df
 
