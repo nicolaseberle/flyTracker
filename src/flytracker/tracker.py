@@ -121,14 +121,11 @@ def _localize(
         image = image.to(device, non_blocking=True)
         if initializing_frame is None:
             initializing_frame = frame_idx - 1
-        new_positions = localizer(
+        new_positions, delta_position = localizer(
             preprocessor(image), locations[initializing_frame, :, :2]
         )
 
-        fly_space_distance = torch.linalg.norm(
-            new_positions.sum(axis=0) - locations[initializing_frame, :, :2].sum(axis=0)
-        )
-        if fly_space_distance < max_change:
+        if delta_position < max_change:
             locations[frame_idx, :, :2] = new_positions
             initializing_frame = frame_idx
         if frame_idx % 1000 == 0:
