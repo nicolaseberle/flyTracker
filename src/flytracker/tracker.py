@@ -68,7 +68,7 @@ def _run(
     device: str,
 ):
 
-    positions, ini_frame = _initialize(
+    positions = _initialize(
         loader, initial_preprocessor, initial_localizer, n_ini, device
     )
     positions = _localize(
@@ -76,7 +76,7 @@ def _run(
     )
     non_zero_frames = torch.sum(positions[:, :, :2], axis=[1, 2]) != 0
     positions = tracker(positions[non_zero_frames])
-    df = post_process(positions, n_arenas, ini_frame)
+    df = post_process(positions, n_arenas)
     return df
 
 
@@ -101,7 +101,7 @@ def _initialize(
     pos_array = torch.empty((loader.frames, n_flies, 3), device=device)
     pos_array[:, :, -1] = torch.arange(loader.frames)[:, None]  # Adding time
     pos_array[frame_idx, :, :2] = torch.tensor(locations, dtype=torch.float32)
-    return pos_array, frame_idx
+    return pos_array
 
 
 def _localize(

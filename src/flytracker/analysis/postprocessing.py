@@ -3,7 +3,7 @@ import pandas as pd
 from sklearn.cluster import k_means
 
 
-def post_process(locations, n_arenas, ini_frame):
+def post_process(locations, n_arenas):
     # Getting some useful properties
     n_frames = len(locations)
     n_flies = len(locations[0])
