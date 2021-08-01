@@ -10,18 +10,15 @@ def post_process(locations, n_arenas, ini_frame):
 
     # finding identities and frames
     identities = np.tile(np.arange(n_flies), n_frames)[:, None]
-    frames = np.repeat(np.arange(ini_frame, n_frames + ini_frame), n_flies)[:, None]
 
     # Making dataframe
     df = pd.DataFrame(
-        np.concatenate([frames, identities], axis=1), columns=["frame", "ID"]
+        np.concatenate([identities, np.concatenate(locations, axis=0)], axis=1),
+        columns=["ID", "x", "y", "frame"],
     )
-
     # Adding arenas and reordering flies
-    df[["x", "y"]] = np.concatenate(locations, axis=0)
-
     df = find_arena(df, n_arenas)
-    df = order_flies(df)
+    # df = order_flies(df)
 
     return df
 

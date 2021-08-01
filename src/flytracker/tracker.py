@@ -74,9 +74,8 @@ def _run(
     positions = _localize(
         loader, main_preprocessor, main_localizer, positions, n_frames, device,
     )
-    if n_frames is not np.inf:
-        positions = positions[:n_frames]
-    positions = tracker(positions[ini_frame:])
+    non_zero_frames = torch.sum(positions[:, :, :2], axis=[1, 2]) != 0
+    positions = tracker(positions[non_zero_frames])
     df = post_process(positions, n_arenas, ini_frame)
     return df
 
@@ -99,8 +98,9 @@ def _initialize(
             if n_blobs[-1] == n_flies:
                 break
 
-    pos_array = torch.empty((loader.frames, n_flies, 2), device=device)
-    pos_array[frame_idx] = torch.tensor(locations, dtype=torch.float32)
+    pos_array = torch.empty((loader.frames, n_flies, 3), device=device)
+    pos_array[:, :, -1] = torch.arange(loader.frames)[:, None]  # Adding time
+    pos_array[frame_idx, :, :2] = torch.tensor(locations, dtype=torch.float32)
     return pos_array, frame_idx
 
 
@@ -117,7 +117,9 @@ def _localize(
         lambda x: x[0] <= n_frames, enumerate(loader)
     ):
         image = image.to(device, non_blocking=True)
-        locations[frame_idx] = localizer(preprocessor(image), locations[frame_idx - 1])
+        locations[frame_idx, :, :2] = localizer(
+            preprocessor(image), locations[frame_idx - 1, :, :2]
+        )
         if frame_idx % 1000 == 0:
             print(f"Done with frame {frame_idx}")
 
