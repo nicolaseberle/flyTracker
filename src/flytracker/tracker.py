@@ -130,7 +130,7 @@ def _multi_initialize(
     loader: DataLoader, init, device,
 ):
     n_flies = init.shape[0]
-    pos_array = torch.empty((loader.frames, n_flies, 3), device=device)
+    pos_array = torch.zeros((loader.frames, n_flies, 3), device=device)
     pos_array[:, :, -1] = torch.arange(loader.frames)[:, None]  # Adding time
     pos_array[0, :, :2] = torch.tensor(init, dtype=torch.float32)
     return pos_array
@@ -206,8 +206,9 @@ def _multi_run(
         positions_list.append(torch.clone(positions))
 
     # Turn into dataframe
-    # non_zero_frames = torch.sum(positions[:, :, :2], axis=[1, 2]) != 0
-    # positions = tracker(positions[non_zero_frames])
-    # df_list.append(post_process(positions, n_arenas))
-    # return df_list
-    return positions_list
+    positions = torch.cat(positions_list, axis=0)
+    positions[:, :, -1] = torch.arange(positions.shape[0])[:, None]  # adding imte
+    non_zero_frames = torch.sum(positions[:, :, :2], axis=[1, 2]) != 0
+    positions = tracker(positions[non_zero_frames])
+    df = post_process(positions, n_arenas)
+    return df
