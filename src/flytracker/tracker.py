@@ -50,11 +50,11 @@ def run(
         ]
     else:
         raise NotADirectoryError
-    # loaders = [DataLoader(path, parallel=False) for path in natsorted(files)]
+    loaders = [DataLoader(path) for path in natsorted(files)]
 
     # Running
     return _multi_run(
-        files,
+        loaders,
         preprocessing_blob(mask),
         localize_blob(default_blob_detector_params()),
         preprocessing_kmeans(mask, device=device),
@@ -67,39 +67,6 @@ def run(
         device,
         max_change,
     )
-
-
-def _run(
-    loader: DataLoader,
-    initial_preprocessor: Callable,
-    initial_localizer: Callable,
-    main_preprocessor: Callable,
-    main_localizer: Callable,
-    tracker: Callable,
-    post_process: Callable,
-    n_arenas: int,
-    n_frames: int,
-    n_ini: int,
-    device: str,
-    max_change: float,
-):
-
-    positions = _initialize(
-        loader, initial_preprocessor, initial_localizer, n_ini, device
-    )
-    positions = _localize(
-        loader,
-        main_preprocessor,
-        main_localizer,
-        positions,
-        n_frames,
-        device,
-        max_change,
-    )
-    non_zero_frames = torch.sum(positions[:, :, :2], axis=[1, 2]) != 0
-    positions = tracker(positions[non_zero_frames])
-    df = post_process(positions, n_arenas)
-    return df
 
 
 def _initialize(
@@ -119,7 +86,6 @@ def _initialize(
             n_flies = int(np.median(n_blobs))
             if n_blobs[-1] == n_flies:
                 break
-    print(enum_idx, frame_idx)
     pos_array = torch.zeros((loader.frames, n_flies, 3), device=device)
     pos_array[:, :, -1] = torch.arange(loader.frames)[:, None]  # Adding time
     pos_array[enum_idx, :, :2] = torch.tensor(locations, dtype=torch.float32)
@@ -167,7 +133,7 @@ def _localize(
 
 
 def _multi_run(
-    files: Iterable[DataLoader],
+    loaders: Iterable[DataLoader],
     initial_preprocessor: Callable,
     initial_localizer: Callable,
     main_preprocessor: Callable,
@@ -183,8 +149,7 @@ def _multi_run(
 
     positions_list = []
     positions = None
-    for file in files:
-        loader = DataLoader(file)
+    for loader in loaders:
         if positions is None:
             positions = _initialize(
                 loader, initial_preprocessor, initial_localizer, n_ini, device
