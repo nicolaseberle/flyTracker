@@ -87,10 +87,7 @@ def _initialize(
             n_flies = int(np.median(n_blobs))
             if n_blobs[-1] == n_flies:
                 break
-    pos_array = initialize_pos_array(
-        loader.frames, locations, device=device, init_frame=enum_idx
-    )
-    return pos_array
+    return locations
 
 
 def initialize_pos_array(n_frames, init, device, init_frame=0):
@@ -103,14 +100,16 @@ def _localize(
     loader: DataLoader,
     preprocessor: Callable,
     localizer: Callable,
-    locations: torch.Tensor,
+    init: torch.Tensor,
     n_frames: int,
     device: str,
     max_change: float,
 ):
 
     initializing_frame = np.maximum(loader.current_frame - 1, 0)
-
+    locations = initialize_pos_array(
+        loader.frames, init, device, init_frame=initializing_frame
+    )
     for _, (frame_idx, image) in takewhile(
         lambda x: x[0] <= n_frames, enumerate(loader)
     ):
@@ -145,28 +144,21 @@ def _run(
 ):
 
     positions_list = []
-    positions = None
+    init = _initialize(
+        loaders[0], initial_preprocessor, initial_localizer, n_ini, device
+    )
     for loader in loaders:
-        if positions is None:
-            positions = _initialize(
-                loader, initial_preprocessor, initial_localizer, n_ini, device
-            )
-        else:
-            positions = initialize_pos_array(
-                loader.frames, positions[-1], device, init_frame=0
-            )
-        # Now run main localizer
-
         positions = _localize(
             loader,
             main_preprocessor,
             main_localizer,
-            positions,
+            init,
             n_frames,
             device,
             max_change,
         )
         positions_list.append(torch.clone(positions))
+        init = positions[-1]
 
     # Turn into dataframe
     positions = torch.cat(positions_list, axis=0).cpu()
