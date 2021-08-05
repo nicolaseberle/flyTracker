@@ -41,21 +41,9 @@ def run(
         main_localizer = localize_kmeans_sklearn
         localizer_args = (torch.tensor(threshold), 1e-4)
 
-    # Setting up loaders
-    if os.path.isfile(path) and path[-4:] == ".mp4":
-        files = [path]
-    elif os.path.isdir(path):
-        files = [
-            os.path.join(path, file)
-            for file in filter(lambda file: file[-4:] == ".mp4", os.listdir(path))
-        ]
-    else:
-        raise NotADirectoryError
-    loaders = [DataLoader(path) for path in natsorted(files)]
-
     # Running
     return _run(
-        loaders,
+        loaders(path),
         preprocessing_blob(mask),
         localize_blob(default_blob_detector_params()),
         preprocessing_kmeans(mask, device=device),
@@ -71,13 +59,9 @@ def run(
 
 
 def _initialize(
-    loader: DataLoader,
-    preprocessor: Callable,
-    localizer: Callable,
-    n_init_frames: int,
-    device,
+    loader: DataLoader, preprocessor: Callable, localizer: Callable, n_init_frames: int,
 ):
-
+    """ Finds an initial location of the flies and the number of flies using the given localizer."""
     n_blobs = []
     for enum_idx, (frame_idx, image) in enumerate(loader):
         locations = localizer(preprocessor(image))
@@ -91,9 +75,27 @@ def _initialize(
 
 
 def initialize_pos_array(n_frames, init, device, init_frame=0):
+    """ Constructs empty array to be filled with positions. Init_frame sets which frame should be used for init. infers shapes from init.
+    Return shsape (n_frames, init.shape[0], init.shape[1])."""
     pos_array = torch.zeros((n_frames, init.shape[0], init.shape[1]), device=device)
     pos_array[init_frame] = torch.tensor(init, dtype=torch.float32)
     return pos_array
+
+
+def loaders(path):
+    """ Construct iterable of dataloaders; contains either all videos in a folder (if path is folder)
+    or just the single video (if path is a specific video."""
+    if os.path.isfile(path) and path[-4:] == ".mp4":
+        files = [path]
+    elif os.path.isdir(path):
+        files = [
+            os.path.join(path, file)
+            for file in filter(lambda file: file[-4:] == ".mp4", os.listdir(path))
+        ]
+    else:
+        raise NotADirectoryError
+
+    return [DataLoader(path) for path in natsorted(files)]
 
 
 def _localize(
@@ -105,7 +107,7 @@ def _localize(
     device: str,
     max_change: float,
 ):
-
+    """ Localize flies in single video. Init sets initial guess, skips frames where the dist between two frames > max_change."""
     initializing_frame = np.maximum(loader.current_frame - 1, 0)
     locations = initialize_pos_array(
         loader.frames, init, device, init_frame=initializing_frame
@@ -142,26 +144,21 @@ def _run(
     device: str,
     max_change: float,
 ):
+    """Runs the tracker over all provided videos and postprocesses etc. Returns dataframe with all data."""
 
-    positions_list = []
-    init = _initialize(
-        loaders[0], initial_preprocessor, initial_localizer, n_ini, device
+    # initialize and set up
+    init = _initialize(loaders[0], initial_preprocessor, initial_localizer, n_ini)
+    positions = [[init]]
+    localizer = lambda loader, init: _localize(
+        loader, main_preprocessor, main_localizer, init, n_frames, device, max_change,
     )
-    for loader in loaders:
-        positions = _localize(
-            loader,
-            main_preprocessor,
-            main_localizer,
-            init,
-            n_frames,
-            device,
-            max_change,
-        )
-        positions_list.append(torch.clone(positions))
-        init = positions[-1]
 
-    # Turn into dataframe
-    positions = torch.cat(positions_list, axis=0).cpu()
+    # Run actual tracker
+    for loader in loaders:
+        positions.append(localizer(loader, positions[-1][-1]))
+
+    # Postprocessing
+    positions = torch.cat(positions[1:], axis=0).cpu()  # removing init
     non_zero_frames = torch.sum(positions, axis=[1, 2]) != 0
     time = (
         torch.arange(positions.shape[0])
