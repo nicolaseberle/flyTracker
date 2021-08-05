@@ -5,17 +5,13 @@ from .videoreader import VideoReader
 
 
 class DataLoader(torch.utils.data.DataLoader):
-    def __init__(self, path, parallel, **reader_kwargs):
-        self.parallel = parallel
+    def __init__(self, path, **reader_kwargs):
         super().__init__(
-            VideoDataset(path, self.parallel, **reader_kwargs),
-            batch_size=None,
-            pin_memory=True,
+            VideoDataset(path, **reader_kwargs), batch_size=None, pin_memory=True,
         )
 
     def stop(self):
-        if self.parallel:
-            self.dataset.reader.stop()
+        self.dataset.reader.release()
 
     @property
     def frames(self,):
@@ -31,24 +27,18 @@ class DataLoader(torch.utils.data.DataLoader):
 
 
 class VideoDataset(torch.utils.data.IterableDataset):
-    def __init__(self, path, parallel=False, **reader_kwargs):
+    def __init__(self, path, **reader_kwargs):
         super().__init__()
-        self.parallel = parallel
-        if self.parallel:
-            self.reader = VideoReader(path, **reader_kwargs)
-        else:
-            self.reader = cv2.VideoCapture(path, **reader_kwargs)
+        self.reader = cv2.VideoCapture(path, **reader_kwargs)
 
     def __iter__(self):
         return self
 
     def __next__(self):
-        if not self.parallel:
-            frame_idx = int(self.reader.get(cv2.CAP_PROP_POS_FRAMES))
-        else:
-            frame_idx = 0
+        frame_idx = int(self.reader.get(cv2.CAP_PROP_POS_FRAMES))
         succes, image = self.reader.read()
         if succes is False:
+            self.reader.release()
             raise StopIteration
 
         return frame_idx, image
