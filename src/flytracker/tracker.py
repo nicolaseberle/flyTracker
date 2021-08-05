@@ -1,3 +1,4 @@
+from operator import pos
 import numpy as np
 import pandas as pd
 import torch
@@ -53,7 +54,7 @@ def run(
     loaders = [DataLoader(path) for path in natsorted(files)]
 
     # Running
-    return _multi_run(
+    return _run(
         loaders,
         preprocessing_blob(mask),
         localize_blob(default_blob_detector_params()),
@@ -86,19 +87,15 @@ def _initialize(
             n_flies = int(np.median(n_blobs))
             if n_blobs[-1] == n_flies:
                 break
-    pos_array = torch.zeros((loader.frames, n_flies, 3), device=device)
-    pos_array[:, :, -1] = torch.arange(loader.frames)[:, None]  # Adding time
-    pos_array[enum_idx, :, :2] = torch.tensor(locations, dtype=torch.float32)
+    pos_array = initialize_pos_array(
+        loader.frames, locations, device=device, init_frame=enum_idx
+    )
     return pos_array
 
 
-def _multi_initialize(
-    loader: DataLoader, init, device,
-):
-    n_flies = init.shape[0]
-    pos_array = torch.zeros((loader.frames, n_flies, 3), device=device)
-    pos_array[:, :, -1] = torch.arange(loader.frames)[:, None]  # Adding time
-    pos_array[0, :, :2] = torch.tensor(init, dtype=torch.float32)
+def initialize_pos_array(n_frames, init, device, init_frame=0):
+    pos_array = torch.zeros((n_frames, init.shape[0], init.shape[1]), device=device)
+    pos_array[init_frame] = torch.tensor(init, dtype=torch.float32)
     return pos_array
 
 
@@ -112,27 +109,27 @@ def _localize(
     max_change: float,
 ):
 
-    initializing_frame = None
+    initializing_frame = np.maximum(loader.current_frame - 1, 0)
+
     for _, (frame_idx, image) in takewhile(
         lambda x: x[0] <= n_frames, enumerate(loader)
     ):
         image = image.to(device, non_blocking=True)
-        if initializing_frame is None:
-            initializing_frame = np.maximum(frame_idx - 1, 0)
         new_positions, delta_position = localizer(
-            preprocessor(image), locations[initializing_frame, :, :2]
+            preprocessor(image), locations[initializing_frame]
         )
 
         if delta_position < max_change:
-            locations[frame_idx, :, :2] = new_positions
+            locations[frame_idx] = new_positions
             initializing_frame = frame_idx
+
         if frame_idx % 1000 == 0:
             print(f"Done with frame {frame_idx}")
     loader.stop()
     return locations
 
 
-def _multi_run(
+def _run(
     loaders: Iterable[DataLoader],
     initial_preprocessor: Callable,
     initial_localizer: Callable,
@@ -155,7 +152,9 @@ def _multi_run(
                 loader, initial_preprocessor, initial_localizer, n_ini, device
             )
         else:
-            positions = _multi_initialize(loader, positions[-1, :, :2], device)
+            positions = initialize_pos_array(
+                loader.frames, positions[-1], device, init_frame=0
+            )
         # Now run main localizer
 
         positions = _localize(
@@ -167,13 +166,17 @@ def _multi_run(
             device,
             max_change,
         )
-        loader.stop()
         positions_list.append(torch.clone(positions))
 
     # Turn into dataframe
-    positions = torch.cat(positions_list, axis=0)
-    positions[:, :, -1] = torch.arange(positions.shape[0])[:, None]  # adding imte
-    non_zero_frames = torch.sum(positions[:, :, :2], axis=[1, 2]) != 0
+    positions = torch.cat(positions_list, axis=0).cpu()
+    non_zero_frames = torch.sum(positions, axis=[1, 2]) != 0
+    time = (
+        torch.arange(positions.shape[0])
+        .repeat(repeats=(positions.shape[1], 1))
+        .T[..., None]
+    )
+    positions = torch.cat((positions, time), axis=-1)
     positions = tracker(positions[non_zero_frames])
     df = post_process(positions, n_arenas)
     return df
