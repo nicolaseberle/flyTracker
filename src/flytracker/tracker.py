@@ -23,7 +23,7 @@ def run(
     n_ini: int = 100,
     gpu: bool = True,
     threshold: int = 120,
-    max_change: float = 20.0,
+    max_change: float = 40.0,
 ) -> pd.DataFrame:
     """User facing run function with sensible standard settings."""
 
