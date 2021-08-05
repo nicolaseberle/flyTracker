@@ -6,7 +6,7 @@ from ..localization.blob.blob import localize_blob
 
 def load_frame(path: str, frame: int, color=False):
     """Load frame of video and turn into grayscale."""
-    loader = DataLoader(path, parallel=False)
+    loader = DataLoader(path)
     loader.dataset.set_frame(frame)
 
     _, (_, image) = next(enumerate(loader))
