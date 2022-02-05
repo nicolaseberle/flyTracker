@@ -18,7 +18,13 @@ mask[-250:, :370] = 0
 mask[830:, 970:] = 0
 
 print("Running tracker.")
-df = run(movie_path, mask, n_arenas=4, mapping_folder=mapping_folder, gpu=True,)
+df = run(
+    movie_path,
+    mask,
+    n_arenas=4,
+    # mapping_folder=mapping_folder,
+    gpu=False,
+)
 
 # Saving
 df.to_hdf(
@@ -28,5 +34,10 @@ df.to_hdf(
 output_loc = "data/experiments/bruno/videos/annotated_video.mp4"
 print("Started annotating.")
 annotate(
-    df, movie_path, mapping_folder, output_loc, track_length=20, touching_distance=10,
+    df,
+    movie_path,
+    mapping_folder,
+    output_loc,
+    track_length=20,
+    touching_distance=10,
 )
