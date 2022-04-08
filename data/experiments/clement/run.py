@@ -15,7 +15,7 @@ mask[:, -240:] = 0
 
 
 print("Running tracker.")
-df = run(movie_path, mask, n_arenas=4, gpu=False, max_change=np.inf, n_frames=5000)
+df = run(movie_path, mask, n_arenas=4, gpu=False, max_change=1.0)
 
 # Saving
 df.to_hdf("data/experiments/clement/tracks.hdf", key="df", complevel=9, complib="blosc")

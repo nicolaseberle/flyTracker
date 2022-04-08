@@ -59,9 +59,12 @@ def run(
 
 
 def _initialize(
-    loader: DataLoader, preprocessor: Callable, localizer: Callable, n_init_frames: int,
+    loader: DataLoader,
+    preprocessor: Callable,
+    localizer: Callable,
+    n_init_frames: int,
 ):
-    """ Finds an initial location of the flies and the number of flies using the given localizer."""
+    """Finds an initial location of the flies and the number of flies using the given localizer."""
     n_blobs = []
     for enum_idx, (frame_idx, image) in enumerate(loader):
         locations = localizer(preprocessor(image))
@@ -75,7 +78,7 @@ def _initialize(
 
 
 def initialize_pos_array(n_frames, init, device, init_frame=0):
-    """ Constructs empty array to be filled with positions. Init_frame sets which frame should be used for init. infers shapes from init.
+    """Constructs empty array to be filled with positions. Init_frame sets which frame should be used for init. infers shapes from init.
     Return shsape (n_frames, init.shape[0], init.shape[1])."""
     pos_array = torch.zeros((n_frames, init.shape[0], init.shape[1]), device=device)
     pos_array[init_frame] = torch.tensor(init, dtype=torch.float32)
@@ -83,7 +86,7 @@ def initialize_pos_array(n_frames, init, device, init_frame=0):
 
 
 def loaders(path):
-    """ Construct iterable of dataloaders; contains either all videos in a folder (if path is folder)
+    """Construct iterable of dataloaders; contains either all videos in a folder (if path is folder)
     or just the single video (if path is a specific video."""
     if os.path.isfile(path) and path[-4:] == ".mp4":
         files = [path]
@@ -107,7 +110,7 @@ def _localize(
     device: str,
     max_change: float,
 ):
-    """ Localize flies in single video. Init sets initial guess, skips frames where the dist between two frames > max_change."""
+    """Localize flies in single video. Init sets initial guess, skips frames where the dist between two frames > max_change."""
     initializing_frame = np.maximum(loader.current_frame - 1, 0)
     locations = initialize_pos_array(
         loader.frames, init, device, init_frame=initializing_frame
@@ -123,6 +126,10 @@ def _localize(
         if delta_position < max_change:
             locations[frame_idx] = new_positions
             initializing_frame = frame_idx
+        else:
+            print(
+                f"Skipping frame {frame_idx} as change in position is {delta_position}."
+            )
 
         if frame_idx % 1000 == 0:
             print(f"Done with frame {frame_idx}")
@@ -150,7 +157,13 @@ def _run(
     init = _initialize(loaders[0], initial_preprocessor, initial_localizer, n_ini)
     positions = [[init]]
     localizer = lambda loader, init: _localize(
-        loader, main_preprocessor, main_localizer, init, n_frames, device, max_change,
+        loader,
+        main_preprocessor,
+        main_localizer,
+        init,
+        n_frames,
+        device,
+        max_change,
     )
 
     # Run actual tracker
