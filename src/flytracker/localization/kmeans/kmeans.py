@@ -13,8 +13,9 @@ def localize_kmeans_sklearn(threshold=120, tol=1e-4):
         )
         locations = torch.tensor(fit.cluster_centers_)
         # we do tracking at the end, so we approximate the distance by summing over all the flies.
-        fly_space_distance = torch.linalg.norm(
-            locations.sum(axis=0) - prev_location.sum(axis=0)
+        fly_space_distance = np.abs(
+            np.linalg.norm(locations.mean(axis=0))
+            - np.linalg.norm(prev_location.mean(axis=0))
         )
         return locations, fly_space_distance
 
@@ -26,11 +27,12 @@ def localize_kmeans_torch(threshold=120, tol=1e-4, device="cuda"):
         fly_pixels = torch.nonzero(image < threshold).type(torch.float32)
         locations, _ = kmeans(fly_pixels, prev_location)
         # we do tracking at the end, so we approximate the distance by summing over all the flies.
-        fly_space_distance = torch.linalg.norm(
-            locations.sum(axis=0) - prev_location.sum(axis=0)
+
+        fly_space_distance = torch.abs(
+            torch.linalg.norm(locations.mean(axis=0))
+            - torch.linalg.norm(prev_location.mean(axis=0))
         )
         return locations, fly_space_distance
 
     kmeans = kmeans_torch(tol=tol, device=device)
     return localize
-
